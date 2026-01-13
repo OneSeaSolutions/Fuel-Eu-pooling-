@@ -1,10 +1,13 @@
+
 /**
  * FuelEU Pooling Platform - Compliance Engine
  * Implementation based on Regulation (EU) 2023/1805 (FuelEU Maritime)
  */
 
 var vessels = []; // Global scope for easier debugging/testing
+var currentGroups = {}; // Global for export access
 let isManualMode = false;
+let isReportsMode = false;
 let currentPoolIndex = 0; // Changed from currentPoolId
 let filters = { imo: '', name: '' };
 let isSearchActive = false;
@@ -13,22 +16,29 @@ let isSearchActive = false;
 const PENALTY_RATE_EUR_PER_TONNE = 2400;
 const VLSFO_ENERGY_MJ_PER_TONNE = 41000;
 const DEFAULT_MAX_POOL_SIZE = 10;
+const AWS_API_ENDPOINT = "https://cqwj9z68z6.execute-api.us-east-1.amazonaws.com/prod/fleet";
 let globalPoolCounter = 0;
+
+// Base64 Logo (to bypass CORS on local file:// execution)
+const LOGO_BASE64 = "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";
 
 function getFleetName(index) {
     const letter = String.fromCharCode(65 + (index % 26));
     const suffix = index >= 26 ? Math.floor(index / 26) + 1 : '';
-    return `Fleet ${letter}${suffix}`;
+    return `Fleet ${letter}${suffix} `;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    init();
-});
+// Consolidated initialization below at bottom
 
 function init() {
     setupEventListeners();
     initTheme();
-    updateDashboard(true); // Initial silent update
+    loadVessels(); // Load local vessels first for immediate UI
+    loadSavedReports(); // Load local reports first for immediate UI
+    updateDashboard(true);
+
+    // Then trigger cloud sync which will update the UI again when data arrives
+    fetchGlobalStateFromAWS();
 }
 
 function initTheme() {
@@ -45,174 +55,111 @@ function setupEventListeners() {
 
     // Vessel Management
     document.getElementById('add-vessel-btn').addEventListener('click', () => toggleModal(true));
-    document.querySelectorAll('.close-modal').forEach(el => el.addEventListener('click', () => toggleModal(false)));
+    document.querySelectorAll('.close-modal').forEach(el => el.addEventListener('click', () => {
+        toggleModal(false);
+        toggleSaveModal(false);
+    }));
 
     document.getElementById('vessel-form').addEventListener('submit', (e) => {
         e.preventDefault();
         addVessel();
     });
 
-    // Excel Upload
-    document.getElementById('excel-upload').addEventListener('change', handleExcelUpload);
+    // Toggle Saved Reports Panel
+    const toggleBtn = document.getElementById('toggle-saved-panel');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            document.getElementById('saved-files-bar').classList.toggle('collapsed');
+        });
+    }
+
+    // Excel Upload Removed
 
     // Mode Selection
-    document.getElementById('auto-mode-btn').addEventListener('click', () => setMode(false));
-    document.getElementById('manual-mode-btn').addEventListener('click', () => setMode(true));
+    document.getElementById('auto-mode-btn').addEventListener('click', () => setMode('auto'));
+    document.getElementById('manual-mode-btn').addEventListener('click', () => setMode('manual'));
 
     // Actions
     document.getElementById('run-pooling-btn').addEventListener('click', runOptimizer);
+    document.getElementById('save-results-btn').addEventListener('click', openSaveModal);
+    document.getElementById('confirm-save-btn').addEventListener('click', handleSaveResults);
     document.getElementById('reset-btn').addEventListener('click', resetFleet);
 
     // Search Toggle
-    document.getElementById('search-toggle-btn').addEventListener('click', toggleSearch);
-
-    // Export
-    document.getElementById('export-btn').addEventListener('click', exportToExcel);
+    const searchBtn = document.getElementById('search-toggle-btn');
+    if (searchBtn) searchBtn.addEventListener('click', toggleSearch);
 
     // Multi-select
-    document.getElementById('select-all').addEventListener('change', (e) => {
-        const filteredVessels = getFilteredVessels();
-        filteredVessels.forEach(v => v.selected = e.target.checked);
-        renderVessels();
-    });
-
+    const selectAll = document.getElementById('select-all');
+    if (selectAll) {
+        selectAll.addEventListener('change', (e) => {
+            const filteredVessels = getFilteredVessels();
+            filteredVessels.forEach(v => v.selected = e.target.checked);
+            renderVessels();
+        });
+    }
     // Filtering
-    document.getElementById('filter-imo').addEventListener('input', (e) => {
-        filters.imo = e.target.value.toLowerCase();
-        renderVessels();
-    });
-    document.getElementById('filter-name').addEventListener('input', (e) => {
-        filters.name = e.target.value.toLowerCase();
-        renderVessels();
-    });
+    const filterName = document.getElementById('filter-name');
+    if (filterName) {
+        filterName.addEventListener('input', (e) => {
+            filters.name = e.target.value.toLowerCase();
+            renderVessels();
+        });
+    }
 }
 
 function toggleModal(active) {
     document.getElementById('vessel-modal').classList.toggle('active', active);
 }
 
-function setMode(manual) {
-    isManualMode = manual;
-    document.body.classList.toggle('manual-mode', manual);
+function setMode(mode) {
+    isManualMode = (mode === 'manual');
+    isReportsMode = false; // Always false now
+
+    document.body.classList.toggle('manual-mode', isManualMode);
 
     const autoBtn = document.getElementById('auto-mode-btn');
     const manualBtn = document.getElementById('manual-mode-btn');
-    const addVesselBtn = document.getElementById('add-vessel-btn');
 
-    if (manual) {
-        manualBtn.classList.add('active');
-        autoBtn.classList.remove('active');
-    } else {
-        autoBtn.classList.add('active');
-        manualBtn.classList.remove('active');
-    }
+    [autoBtn, manualBtn].forEach(btn => btn.classList.remove('active'));
+
+    if (mode === 'auto') autoBtn.classList.add('active');
+    if (mode === 'manual') manualBtn.classList.add('active');
 
     const optBtn = document.getElementById('run-pooling-btn');
-    optBtn.textContent = manual ? "Create Manual Pool" : "Optimize Fleet";
+    optBtn.textContent = isManualMode ? "Create Manual Pool" : "Optimize Fleet";
 
     renderVessels();
 }
 
-function handleExcelUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+// Reusable Excel Processing Logic
+// Excel processing logic removed per user request
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-
-        // Smart Sheet Detection: Scan all sheets
-        let allVessels = [];
-        let foundSheet = false;
-
-        for (const sheetName of workbook.SheetNames) {
-            const sheet = workbook.Sheets[sheetName];
-            // Convert to array of arrays (headerless first) to scan for header row
-            const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-            if (!rawData || rawData.length === 0) continue;
-
-            // Find Header Row (look for "IMO", "Name", "Vessel", etc. in first 20 rows)
-            let headerRowIndex = -1;
-            for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                const row = rawData[i];
-                if (!row) continue;
-                const rowStr = row.map(c => String(c).toLowerCase()).join(" ");
-                if ((rowStr.includes("imo") || rowStr.includes("vessel")) && rowStr.includes("compliance")) {
-                    headerRowIndex = i;
-                    break;
-                }
-            }
-
-            if (headerRowIndex !== -1) {
-                // Parse starting from the found header row
-                const json = XLSX.utils.sheet_to_json(sheet, { range: headerRowIndex });
-                const newVessels = json.map((row, index) => {
-                    const keys = Object.keys(row);
-                    const k = (search) => keys.find(key => key.toLowerCase().includes(search));
-
-                    const cbKey = k("compliance") || k("cb") || k("balance");
-                    const nameKey = k("name") || k("vessel");
-                    const imoKey = k("imo") || k("number");
-                    const ghgKey = k("ghg") || k("intensity");
-
-                    if (!cbKey && !nameKey) return null; // Skip invalid rows
-
-                    const cb = parseFloat(row[cbKey] || 0);
-                    if (isNaN(cb) && !row[nameKey]) return null; // Skip empty rows
-
-                    return {
-                        id: Date.now() + index + Math.random(),
-                        name: row[nameKey] || `Ship-${index}`,
-                        imo: row[imoKey] || "0000000",
-                        ghg: parseFloat(row[ghgKey] || 94.1),
-                        cb: cb || 0,
-                        status: (cb || 0) >= 0 ? "surplus" : "deficit",
-                        poolId: null,
-                        selected: false
-                    };
-                }).filter(v => v !== null);
-
-                if (newVessels.length > 0) {
-                    allVessels = [...allVessels, ...newVessels];
-                    foundSheet = true;
-                    console.log(`Found ${newVessels.length} vessels in sheet: ${sheetName}`);
-                }
-            }
-        }
-
-        if (!foundSheet) {
-            // Fallback: Try reading first sheet normally if smart scan failed
-            console.warn("Smart scan failed, trying fallback to Sheet 0");
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(sheet);
-            const newVessels = json.map((row, index) => {
-                // ... (Existing basic parsing logic could go here, but omitted to keep clean. 
-                // If smart scan fails, the file is likely very malformed or simple.
-                // We will trust smart scan usually works for varied headers).
-                return null;
-            }).filter(x => x);
-
-            if (allVessels.length === 0) {
-                showToast("Error: Could not find valid vessel data. Check headers.");
-                return;
-            }
-        }
-
-        vessels = [...vessels, ...allVessels];
-        showToast(`Imported ${allVessels.length} vessels successfully`);
-
-        if (!isManualMode) {
-            // OLD: runOptimizer(); 
-            // NEW: Just show data first, let user click Optimize
-            updateDashboard();
-        } else {
-            updateDashboard();
-        }
-    };
-    reader.readAsArrayBuffer(file);
+async function saveVessels(sync = true) {
+    localStorage.setItem('fuel_eu_vessels', JSON.stringify(vessels));
+    if (sync && AWS_API_ENDPOINT) {
+        await saveGlobalStateToAWS();
+    }
 }
+
+function loadVessels() {
+    const saved = localStorage.getItem('fuel_eu_vessels');
+    if (saved) {
+        try {
+            vessels = JSON.parse(saved);
+            console.log("Loaded vessels from persistence:", vessels.length);
+        } catch (e) {
+            console.error("Error loading vessels:", e);
+        }
+    }
+}
+
+// handleExcelUpload removed
+
+// NOTE: Automatic Sync Logic
+// If a valid public URL is provided in the future, it can be set here.
+// const AUTO_SYNC_URL = "https://example.com/public_fleet_data.xlsx"; 
+// if (typeof AUTO_SYNC_URL !== 'undefined' && AUTO_SYNC_URL) { ... fetch logic ... }
 
 function addVessel() {
     const name = document.getElementById('vessel-name').value;
@@ -231,10 +178,124 @@ function addVessel() {
         selected: false
     });
 
+    saveVessels(); // Persist data
     toggleModal(false);
     document.getElementById('vessel-form').reset();
     updateDashboard();
     showToast(`Added ${name} to fleet`);
+}
+
+async function fetchGlobalStateFromAWS() {
+    if (!AWS_API_ENDPOINT) {
+        loadVessels();
+        loadSavedReports();
+        updateDashboard();
+        return;
+    }
+
+    showToast("Connecting to Shared Database...");
+    try {
+        const response = await fetch(AWS_API_ENDPOINT);
+        if (response.ok) {
+            const cloudData = await response.json();
+
+            let cloudHasVessels = false;
+            // Handle both legacy (just array) and new (object with vessels/reports) formats
+            if (Array.isArray(cloudData)) {
+                if (cloudData.length > 0) {
+                    vessels = cloudData;
+                    cloudHasVessels = true;
+                }
+            } else if (cloudData && typeof cloudData === 'object') {
+                if (cloudData.vessels && cloudData.vessels.length > 0) {
+                    vessels = cloudData.vessels;
+                    cloudHasVessels = true;
+                }
+                if (cloudData.reports) {
+                    let reports = cloudData.reports;
+                    if (reports.length > 10) reports = reports.slice(0, 10);
+                    localStorage.setItem('fuel_eu_reports', JSON.stringify(reports));
+                    renderSavedFilesBar();
+                }
+            }
+
+            // Logic: If cloud is empty but we have local vessels, PUSH local to cloud (Migration)
+            if (!cloudHasVessels && vessels.length > 0) {
+                console.log("Cloud is empty. Migrating local fleet to Cloud...");
+                saveGlobalStateToAWS();
+                showToast("Fleet migrated to Shared Database");
+            } else {
+                saveVessels(false); // Update local cache with cloud data
+                showToast("Database Synced (Fleet & Reports)");
+            }
+            renderSavedFilesBar();
+        } else {
+            throw new Error("Cloud fetch failed");
+        }
+    } catch (error) {
+        console.error("Cloud fetch error:", error);
+        loadVessels();
+        loadSavedReports();
+        showToast("Using local offline data", "info");
+    }
+    updateDashboard();
+}
+
+async function saveGlobalStateToAWS() {
+    if (!AWS_API_ENDPOINT) return;
+
+    const reports = JSON.parse(localStorage.getItem('fuel_eu_reports') || '[]');
+
+    // AWS DynamoDB (via Boto3) doesn't like float types. 
+    // We round numerical values to satisfy the backend.
+    const sanitizeVessel = (v) => ({
+        ...v,
+        ghg: Math.round(v.ghg || 0),
+        cb: Math.round(v.cb || 0)
+    });
+
+    const sanitizeReport = (r) => ({
+        ...r,
+        vessels: r.vessels.map(sanitizeVessel),
+        stats: {
+            ...r.stats,
+            totalCB: Math.round(r.stats.totalCB || 0)
+        }
+    });
+
+    const state = {
+        vessels: vessels.map(sanitizeVessel),
+        reports: reports.map(sanitizeReport),
+        lastUpdated: new Date().toISOString()
+    };
+
+    try {
+        const response = await fetch(AWS_API_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(state)
+        });
+        if (response.ok) {
+            console.log("Cloud state synchronized");
+            // showToast("Cloud Sync Successful", "info");
+        } else {
+            console.error("Cloud sync failed:", response.status);
+            showToast("Cloud Sync Failed. Check internet.", "error");
+        }
+    } catch (error) {
+        console.error("Cloud save error:", error);
+        showToast("Cloud Connection Error", "error");
+    }
+}
+
+function loadSavedReports() {
+    // Basic local load; fetchGlobalState handles cloud load
+    renderSavedFilesBar();
+}
+
+// Re-implementing a more robust sync function for the UI if needed
+function syncData() {
+    fetchGlobalStateFromAWS();
 }
 
 function toggleTheme(event) {
@@ -293,6 +354,7 @@ function getFilteredVessels() {
 
 function deleteVessel(id) {
     vessels = vessels.filter(v => v.id !== id);
+    saveVessels(); // Persist data
     updateDashboard();
 }
 
@@ -452,7 +514,127 @@ function runOptimizer() {
     });
 
     updateDashboard();
+    saveVessels(true); // Persist optimization results (and sync any new Excel data) to Cloud
     showToast(`Optimization Complete: ${pools.length} pools generated.`);
+
+    // Show save button after optimization
+    document.getElementById('save-results-btn').style.display = 'inline-flex';
+}
+
+function openSaveModal() {
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-GB'); // DD/MM/YYYY
+    const defaultName = `Fueleu pooling-${dateStr}`;
+    document.getElementById('report-name-input').value = defaultName;
+    toggleSaveModal(true);
+}
+
+function toggleSaveModal(active) {
+    document.getElementById('save-modal').classList.toggle('active', active);
+}
+
+function handleSaveResults() {
+    const reportName = document.getElementById('report-name-input').value.trim();
+    if (!reportName) {
+        showToast("Please enter a report name", "error");
+        return;
+    }
+
+    const snapshot = {
+        id: Date.now(),
+        name: reportName,
+        date: new Date().toLocaleString(),
+        vessels: JSON.parse(JSON.stringify(vessels)),
+        stats: {
+            totalCB: vessels.reduce((acc, v) => acc + v.cb, 0),
+            pooledCount: vessels.filter(v => v.status === 'pooled').length
+        }
+    };
+
+    const savedReports = JSON.parse(localStorage.getItem('fuel_eu_reports') || '[]');
+    savedReports.unshift(snapshot);
+
+    // Enforce 10-file rolling limit
+    if (savedReports.length > 10) {
+        savedReports.pop(); // Remove the oldest one
+        showToast("Maximum 10 reports reached. Oldest report auto-deleted.");
+    }
+
+    localStorage.setItem('fuel_eu_reports', JSON.stringify(savedReports));
+
+    saveVessels(); // This calls saveGlobalStateToAWS internally
+    showToast("Optimization results saved to Cloud & Local Storage");
+    toggleSaveModal(false);
+    document.getElementById('save-results-btn').style.display = 'none';
+
+    // Auto-expand panel on new save
+    const panel = document.getElementById('saved-files-bar');
+    if (panel) panel.classList.remove('collapsed');
+
+    renderSavedFilesBar(); // Update the bar
+}
+
+function renderSavedReports() {
+    // This function is now legacy but we keep it for any internal calls that might remain
+    // though the UI tab is removed.
+}
+
+function downloadHistoricalReport(reportId, type) {
+    const savedReports = JSON.parse(localStorage.getItem('fuel_eu_reports') || '[]');
+    const report = savedReports.find(r => r.id == reportId);
+    if (!report) return;
+
+    // Temporarily swap global vessels to generate correctly
+    const originalVessels = vessels;
+    vessels = report.vessels;
+
+    if (type === 'excel') exportExcel();
+    else exportPDF();
+
+    // Restore
+    vessels = originalVessels;
+}
+
+function deleteReport(id) {
+    if (!confirm("Are you sure you want to delete this report?")) return;
+    let savedReports = JSON.parse(localStorage.getItem('fuel_eu_reports') || '[]');
+    savedReports = savedReports.filter(r => r.id !== id);
+    localStorage.setItem('fuel_eu_reports', JSON.stringify(savedReports));
+
+    // Sync the deletion to AWS
+    if (AWS_API_ENDPOINT) {
+        saveGlobalStateToAWS();
+    }
+
+    renderSavedFilesBar(); // Update the bar
+    showToast("Report deleted");
+}
+
+function renderSavedFilesBar() {
+    const list = document.getElementById('saved-files-list');
+    const countTag = document.getElementById('saved-count');
+    const savedReports = JSON.parse(localStorage.getItem('fuel_eu_reports') || '[]');
+
+    countTag.textContent = `${savedReports.length}/10`;
+
+    if (savedReports.length === 0) {
+        list.innerHTML = `<div class="empty-state-mini" style="padding:1rem; text-align:center; font-size:0.75rem; color:var(--text-muted);">No saved reports.</div>`;
+        return;
+    }
+
+    list.innerHTML = savedReports.map(report => `
+        <div class="saved-file-item">
+            <button class="btn-delete-mini" onclick="deleteReport(${report.id})" title="Delete">×</button>
+            <div class="file-info">
+                <span class="file-name" title="${report.name}">${report.name}</span>
+                <span class="file-date">${report.date}</span>
+            </div>
+            <div class="file-actions">
+                <button class="btn-mini" onclick="downloadHistoricalReport('${report.id}', 'pdf')">PDF</button>
+                <button class="btn-mini" onclick="downloadHistoricalReport('${report.id}', 'excel')">Excel</button>
+            </div>
+        </div>
+    `).join('');
 }
 
 function handleManualPooling() {
@@ -475,13 +657,16 @@ function handleManualPooling() {
     });
 
     updateDashboard();
+    saveVessels(true); // Persist manual pool to Cloud
     showToast(`Manual Pool ${newPoolId} created.`);
 }
 
 function resetFleet() {
+    if (!confirm("Are you sure you want to clear the entire fleet? This will sync to Cloud.")) return;
     vessels = [];
     currentPoolIndex = 0;
     globalPoolCounter = 0;
+    saveVessels(true); // This clears both local and Cloud
     updateDashboard();
 }
 
@@ -609,7 +794,7 @@ function renderVessels() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                     </button>
                 </td>
-            `;
+`;
             list.appendChild(row);
         });
 
@@ -628,7 +813,7 @@ function renderVessels() {
                 <td class="pool-summary-cell text-right ${cbClass} text-bold">
                     ${poolCB.toLocaleString()}<span class="unit-label">gCO2eq</span>
                 </td>
-                <td></td><!-- Pool ID -->
+                <td></td><!--Pool ID-- >
                 <td class="pool-summary-cell text-right">
                     <div class="pool-summary-item">
                         <span class="summary-label">SAVED:</span>
@@ -636,7 +821,7 @@ function renderVessels() {
                     </div>
                 </td>
                 <td colspan="2"></td>
-            `;
+`;
             list.appendChild(footerRow);
         }
     });
@@ -671,7 +856,7 @@ function renderVessels() {
                 €${totalFleetPenalty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
             <td colspan="2"></td>
-        </tr>
+        </tr >
     `;
 }
 
@@ -698,9 +883,9 @@ function changePool(id, newPoolId) {
 
     updateDashboard();
     if (newPoolId === "NEW_POOL") {
-        showToast(`Created and assigned to ${v.poolId}`);
+        showToast(`Created and assigned to ${v.poolId} `);
     } else if (v.poolId) {
-        showToast(`Moved to ${v.poolId}`);
+        showToast(`Moved to ${v.poolId} `);
     } else {
         showToast(`Removed from pool`);
     }
@@ -724,7 +909,7 @@ function calculateStats(silent = false) {
     const initialTotalPenalty = calculateIndividualDeficitPenalty(vessels);
 
     // Group vessels by pool for current state
-    const currentGroups = {};
+    currentGroups = {};
     vessels.forEach(v => {
         const pId = v.poolId || 'Unpooled';
         if (!currentGroups[pId]) currentGroups[pId] = [];
@@ -782,8 +967,8 @@ function calculateStats(silent = false) {
     }
 
     if (silent) {
-        balanceEl.innerHTML = `${totalCB.toLocaleString()}<span class="unit-label">gCO2eq</span>`;
-        savingsEl.textContent = `€${Math.floor(Math.abs(savings)).toLocaleString()}`;
+        balanceEl.innerHTML = `${totalCB.toLocaleString()} <span class="unit-label">gCO2eq</span>`;
+        savingsEl.textContent = `€${Math.floor(Math.abs(savings)).toLocaleString()} `;
         pooledCountEl.textContent = `${pooledCount} / ${vessels.length}`;
         if (savingsEl.parentElement.querySelector('.savings-breakdown')) {
             savingsEl.parentElement.querySelector('.savings-breakdown').remove();
@@ -844,36 +1029,37 @@ function showToast(msg) {
     }, 4000);
 }
 
-function exportToExcel() {
+// Helper to force browser to respect filename
+// Reliable Base64 Download Helper
+function downloadBase64(base64Data, filename, mimeType) {
+    const link = document.createElement('a');
+    link.href = `data:${mimeType};base64,${base64Data}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    document.body.removeChild(link);
+}
+
+function exportExcel() {
     if (!vessels || vessels.length === 0) {
         showToast("No vessels to optimize", "error");
         return;
     }
 
-    // 1. Prepare Vessel Details Sheet
-    const vesselDetails = vessels.map(v => ({
-        "IMO Number": v.imo,
-        "Vessel Name": v.name,
-        "GHG Intensity": v.ghg,
-        "Compliance Balance (gCO2eq)": v.cb,
-        "Pool ID": v.poolId || 'Unpooled',
-        "Status": v.status,
-        "Energy Impact (MJ)": Math.abs(v.cb) / v.ghg,
-        "Monetary Impact (€)": (Math.abs(v.cb) / v.ghg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE
-    }));
-
-    // 2. Prepare Summary Sheet
+    // 1. Calculate Summary Stats
     const totalCB = vessels.reduce((acc, v) => acc + v.cb, 0);
 
-    // Calculate stats using existing logic
-    const calculateIndividualDeficitPenalty = (vesselList) => {
-        return vesselList.reduce((acc, v) => {
+    // Calculate penalties
+    const calculateDeficitPenalty = (vList) => {
+        return vList.reduce((acc, v) => {
             if (v.cb >= 0) return acc;
             return acc + (Math.abs(v.cb) / v.ghg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
         }, 0);
     };
 
-    const initialTotalPenalty = calculateIndividualDeficitPenalty(vessels);
+    const initialTotalPenalty = calculateDeficitPenalty(vessels); // If no pooling existed
+
+    // Group by Pool to calculate actual current penalties
     const currentGroups = {};
     vessels.forEach(v => {
         const pId = v.poolId || 'Unpooled';
@@ -882,57 +1068,249 @@ function exportToExcel() {
     });
 
     let currentTotalPenalty = 0;
-    const poolSummaries = [];
-
     Object.keys(currentGroups).forEach(pId => {
         const members = currentGroups[pId];
         const poolCB = members.reduce((sum, v) => sum + v.cb, 0);
-        let netPenalty = 0;
-        if (pId === 'Unpooled') {
-            netPenalty = calculateIndividualDeficitPenalty(members);
-        } else if (poolCB < 0) {
-            const avgGhg = members.reduce((s, m) => s + m.ghg, 0) / members.length;
-            netPenalty = (Math.abs(poolCB) / avgGhg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
-        }
-        currentTotalPenalty += netPenalty;
 
-        poolSummaries.push({
-            "Pool ID": pId,
-            "Vessel Count": members.length,
-            "Total CB (gCO2eq)": poolCB,
-            "Net Penalty (€)": netPenalty,
-            "Status": poolCB >= 0 ? "Compliant" : "Deficit"
-        });
+        let poolPenalty = 0;
+        if (pId === 'Unpooled') {
+            poolPenalty = calculateDeficitPenalty(members);
+        } else if (poolCB < 0) {
+            // Whole pool penalty
+            const avgGhg = members.reduce((s, m) => s + m.ghg, 0) / members.length;
+            poolPenalty = (Math.abs(poolCB) / avgGhg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
+        }
+        currentTotalPenalty += poolPenalty;
     });
 
     const savings = initialTotalPenalty - currentTotalPenalty;
 
-    const summaryData = [
-        ["FuelEU Compliance Report"],
-        ["Generated on", new Date().toLocaleString()],
+    // Sort keys: Unpooled last
+    const poolKeys = Object.keys(currentGroups).sort((a, b) => {
+        if (a === 'Unpooled') return 1;
+        if (b === 'Unpooled') return -1;
+        return a.localeCompare(b);
+    });
+
+    // 2. Prepare Data Structure for Sheet (Template Formatting)
+    const exportData = [
+        ["ONESEA SOLUTIONS"],
+        ["FuelEU Compliance & Pooling Platform"],
+        ["Official Optimization Report"],
         [],
-        ["Overall Fleet Stats"],
-        ["Total Vessels", vessels.length],
-        ["Total Fleet Balance (gCO2eq)", totalCB.toLocaleString()],
-        ["Initial Potential Penalty (€)", initialTotalPenalty.toLocaleString()],
-        ["Realized Penalty (€)", currentTotalPenalty.toLocaleString()],
-        ["Potential Savings (€)", savings.toLocaleString()],
+        ["GENERATED ON:", new Date().toLocaleString()],
+        ["FLEET STATUS:", totalCB >= 0 ? "COMPLIANT" : "DEFICIT"],
         [],
-        ["Pool Summaries"],
-        ["Pool ID", "Vessel Count", "Total CB (gCO2eq)", "Net Penalty (€)", "Status"],
-        ...poolSummaries.map(p => [p["Pool ID"], p["Vessel Count"], p["Total CB (gCO2eq)"], p["Net Penalty (€)"], p["Status"]])
+        ["[ SUMMARY METRICS ]"],
+        ["Total Fleet Balance", `${totalCB.toLocaleString()} gCO2eq`],
+        ["Initial Penalty (Unpooled)", `€${Math.floor(initialTotalPenalty).toLocaleString()}`],
+        ["Final Penalty (Optimized)", `€${Math.floor(currentTotalPenalty).toLocaleString()}`],
+        ["TOTAL SAVINGS REALIZED", `€${Math.floor(savings).toLocaleString()}`],
+        [],
+        ["[ DETAILED POOL ASSIGNMENTS ]"],
+        ["IMO Number", "Vessel Name", "GHG Intensity", "Compliance Balance", "Pool ID", "Penalty (EUR)", "Status"] // Headers
     ];
 
-    // Create workbook and append sheets
+    // 3. Add Vessel Rows (Grouped by Pool)
+    poolKeys.forEach(pId => {
+        const members = currentGroups[pId];
+        const poolCB = members.reduce((sum, v) => sum + v.cb, 0);
+        const poolStatus = poolCB >= 0 ? "Compliant" : "Deficit";
+
+        exportData.push([
+            "",
+            "POOL HEADER:",
+            "",
+            "",
+            pId,
+            "",
+            poolStatus
+        ]);
+
+        members.forEach(v => {
+            let rowPenalty = 0;
+            if (pId === 'Unpooled' && v.cb < 0) {
+                rowPenalty = (Math.abs(v.cb) / (v.ghg || 94.1) / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
+            } else if (pId !== 'Unpooled' && poolCB < 0) {
+                rowPenalty = "Shared pool penalty";
+            }
+
+            exportData.push([
+                v.imo || "",
+                v.name || "",
+                Number((v.ghg || 0).toFixed(1)),
+                Math.round(v.cb || 0),
+                pId,
+                typeof rowPenalty === 'number' ? `€${Math.floor(rowPenalty).toLocaleString()}` : rowPenalty,
+                v.status || ""
+            ]);
+        });
+        exportData.push(["", "", "", "", "", "", ""]);
+    });
+
+    // Ensure all rows have 7 columns (padding)
+    const finalizedData = exportData.map(row => {
+        const padded = [...row];
+        while (padded.length < 7) padded.push("");
+        return padded;
+    });
+
     const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(finalizedData);
 
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, wsSummary, "Fleet Summary");
+    // Auto-width columns
+    const wscols = [{ wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 20 }, { wch: 15 }];
+    ws['!cols'] = wscols;
 
-    const wsDetails = XLSX.utils.json_to_sheet(vesselDetails);
-    XLSX.utils.book_append_sheet(wb, wsDetails, "Vessel Details");
+    XLSX.utils.book_append_sheet(wb, ws, "Pooling Results");
 
-    // Export
-    XLSX.writeFile(wb, `FuelEU_Compliance_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    showToast("Report exported successfully!");
+    try {
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+        downloadBase64(wbout, "FuelEU_Pooling_Report.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        showToast("Excel exported successfully!");
+    } catch (err) {
+        console.error("Excel Export Error:", err);
+        showToast("Error generating Excel.", "error");
+    }
 }
+
+function exportPDF() {
+    if (!window.jspdf) {
+        showToast("Error: PDF library not loaded");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // --- Template Assets (Logo) ---
+    // Inject Base64 Logo directly to bypass local file:// restrictions
+    if (typeof LOGO_BASE64 !== 'undefined' && LOGO_BASE64) {
+        try {
+            doc.addImage(LOGO_BASE64, 'PNG', 150, 10, 35, 12);
+        } catch (e) {
+            console.warn("Could not add logo to PDF:", e);
+        }
+    }
+
+    // --- Header ---
+    doc.setFontSize(22);
+    doc.setTextColor(40, 58, 109);
+    doc.text("FuelEU Pooling Report", 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+    // --- Summary Metrics ---
+    const currentGroups = {};
+    vessels.forEach(v => {
+        const pId = v.poolId || 'Unpooled';
+        if (!currentGroups[pId]) currentGroups[pId] = [];
+        currentGroups[pId].push(v);
+    });
+
+    let totalCB = 0;
+    let initialTotalPenalty = 0;
+    let currentTotalPenalty = 0;
+
+    const poolKeys = Object.keys(currentGroups).sort((a, b) => {
+        if (a === 'Unpooled') return 1;
+        if (b === 'Unpooled') return -1;
+        return a.localeCompare(b);
+    });
+
+    poolKeys.forEach(pId => {
+        const members = currentGroups[pId];
+        totalCB += members.reduce((s, v) => s + v.cb, 0);
+
+        members.forEach(v => {
+            if (v.cb < 0) {
+                initialTotalPenalty += (Math.abs(v.cb) / v.ghg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
+            }
+        });
+
+        const poolCB = members.reduce((s, v) => s + v.cb, 0);
+        if (pId === 'Unpooled') {
+            currentTotalPenalty += members.reduce((sum, v) => {
+                return v.cb < 0 ? sum + (Math.abs(v.cb) / v.ghg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE : sum;
+            }, 0);
+        } else if (poolCB < 0) {
+            const avgGhg = members.reduce((s, m) => s + m.ghg, 0) / members.length;
+            currentTotalPenalty += (Math.abs(poolCB) / avgGhg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
+        }
+    });
+
+    const savings = initialTotalPenalty - currentTotalPenalty;
+
+    doc.autoTable({
+        startY: 40,
+        head: [['Summary Metrics', 'Value']],
+        body: [
+            ['Total Fleet Balance', `${totalCB.toLocaleString()} gCO2eq`],
+            ['Initial Penalty (Unpooled)', `€${Math.floor(initialTotalPenalty).toLocaleString()}`],
+            ['Final Penalty (Optimized)', `€${Math.floor(currentTotalPenalty).toLocaleString()}`],
+            ['TOTAL SAVINGS', `€${Math.floor(savings).toLocaleString()}`]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [49, 58, 109], textColor: 255 },
+        styles: { fontSize: 10, cellPadding: 4 },
+        columnStyles: { 0: { fontStyle: 'bold' } }
+    });
+
+    let startY = doc.lastAutoTable.finalY + 15;
+    doc.setFontSize(14);
+    doc.setTextColor(40, 58, 109);
+    doc.text("Detailed Pool Assignments", 14, startY);
+
+    const tableBody = [];
+    poolKeys.forEach(pId => {
+        const members = currentGroups[pId];
+        const poolCB = members.reduce((sum, v) => sum + v.cb, 0);
+        const poolStatus = poolCB >= 0 ? "Compliant" : "Deficit";
+
+        tableBody.push([{ content: `Pool: ${pId} | Count: ${members.length} | Balance: ${poolCB.toLocaleString()} | Status: ${poolStatus}`, colSpan: 7, styles: { fillColor: [240, 240, 240], fontStyle: 'bold', halign: 'left' } }]);
+
+        members.forEach(v => {
+            let rowPenalty = "0";
+            if (pId === 'Unpooled' && v.cb < 0) {
+                const val = (Math.abs(v.cb) / v.ghg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
+                rowPenalty = `€${Math.floor(val).toLocaleString()}`;
+            } else if (pId !== 'Unpooled') {
+                const pCB = poolCB;
+                if (pCB < 0) rowPenalty = "Shared";
+            }
+
+            tableBody.push([
+                v.imo || "",
+                v.name || "",
+                (v.ghg || 0).toFixed(1),
+                Math.round(v.cb || 0).toLocaleString(),
+                pId,
+                rowPenalty,
+                v.status || ""
+            ]);
+        });
+    });
+
+    doc.autoTable({
+        startY: startY + 6,
+        head: [['IMO', 'Vessel Name', 'GHG', 'Balance', 'Pool', 'Penalty', 'Status']],
+        body: tableBody,
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 3, lineColor: [200, 200, 200], lineWidth: 0.1 },
+        headStyles: { fillColor: [49, 58, 109], textColor: 255, fontStyle: 'bold' }
+    });
+
+    // Generate Base64 for PDF
+    const pdfBase64 = doc.output('datauristring').split(',')[1];
+    downloadBase64(pdfBase64, "FuelEU_Pooling_Report.pdf", "application/pdf");
+    showToast("PDF exported successfully!");
+}
+
+// Initialize Application
+// Consolidated Initialization
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    console.log("FuelEU Pooling App Initialized");
+});
