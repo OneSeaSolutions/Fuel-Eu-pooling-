@@ -17,15 +17,17 @@ const PENALTY_RATE_EUR_PER_TONNE = 2400;
 const VLSFO_ENERGY_MJ_PER_TONNE = 41000;
 const DEFAULT_MAX_POOL_SIZE = 10;
 const AWS_API_ENDPOINT = "https://cqwj9z68z6.execute-api.us-east-1.amazonaws.com/prod/fleet";
+
+/* ... (rest of file) ... */
+
+// Initial cloud fetch moved to fetchGlobalStateFromAWS() and called in init()
 let globalPoolCounter = 0;
 
 // Base64 Logo (to bypass CORS on local file:// execution)
 const LOGO_BASE64 = "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";
 
 function getFleetName(index) {
-    const letter = String.fromCharCode(65 + (index % 26));
-    const suffix = index >= 26 ? Math.floor(index / 26) + 1 : '';
-    return `Fleet ${letter}${suffix} `;
+    return `OSS-${index + 1}`;
 }
 
 // Consolidated initialization below at bottom
@@ -54,7 +56,7 @@ function setupEventListeners() {
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
     // Vessel Management
-    document.getElementById('add-vessel-btn').addEventListener('click', () => toggleModal(true));
+    // document.getElementById('add-vessel-btn').addEventListener('click', () => toggleModal(true));
     document.querySelectorAll('.close-modal').forEach(el => el.addEventListener('click', () => {
         toggleModal(false);
         toggleSaveModal(false);
@@ -73,7 +75,8 @@ function setupEventListeners() {
         });
     }
 
-    // Excel Upload Removed
+    // Excel Upload
+    document.getElementById('excel-upload').addEventListener('change', handleExcelUpload);
 
     // Mode Selection
     document.getElementById('auto-mode-btn').addEventListener('click', () => setMode('auto'));
@@ -83,7 +86,7 @@ function setupEventListeners() {
     document.getElementById('run-pooling-btn').addEventListener('click', runOptimizer);
     document.getElementById('save-results-btn').addEventListener('click', openSaveModal);
     document.getElementById('confirm-save-btn').addEventListener('click', handleSaveResults);
-    document.getElementById('reset-btn').addEventListener('click', resetFleet);
+    // Reset and Delete listeners moved to Modal section below
 
     // Search Toggle
     const searchBtn = document.getElementById('search-toggle-btn');
@@ -98,14 +101,66 @@ function setupEventListeners() {
             renderVessels();
         });
     }
-    // Filtering
-    const filterName = document.getElementById('filter-name');
-    if (filterName) {
-        filterName.addEventListener('input', (e) => {
-            filters.name = e.target.value.toLowerCase();
-            renderVessels();
+    // Filter Inputs (Attach directly to new panel inputs)
+    const filterNameInput = document.getElementById('filter-name');
+    const filterImoInput = document.getElementById('filter-imo');
+
+    const handleSearchInput = () => {
+        // Ensure global filters object is updated
+        if (typeof filters === 'undefined') window.filters = { name: '', imo: '' };
+
+        filters.name = filterNameInput ? filterNameInput.value.toLowerCase() : '';
+        filters.imo = filterImoInput ? filterImoInput.value.toLowerCase() : '';
+
+        // Trigger update
+        updateDashboard();
+    };
+
+    if (filterNameInput) filterNameInput.addEventListener('input', handleSearchInput);
+    if (filterImoInput) filterImoInput.addEventListener('input', handleSearchInput);
+
+    // Modals
+    // Reset Modal
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        const hasPooled = vessels.some(v => v.poolId);
+        if (!hasPooled && vessels.length > 0) {
+            showToast("No active pools to reset.", "info");
+            return;
+        }
+        document.getElementById('reset-confirmation-modal').classList.add('active');
+    });
+
+    document.querySelectorAll('.close-reset-modal').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('reset-confirmation-modal').classList.remove('active');
+        });
+    });
+
+    document.getElementById('confirm-reset-btn').addEventListener('click', () => {
+        executeResetPooling();
+        document.getElementById('reset-confirmation-modal').classList.remove('active');
+    });
+
+    // Delete All Modal
+    const deleteAllBtn = document.getElementById('delete-all-btn');
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', () => {
+            document.getElementById('delete-confirmation-modal').classList.add('active');
         });
     }
+
+    document.querySelectorAll('.close-delete-modal').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('delete-confirmation-modal').classList.remove('active');
+        });
+    });
+
+    document.getElementById('confirm-delete-all-btn').addEventListener('click', () => {
+        executeClearAllData();
+        document.getElementById('delete-confirmation-modal').classList.remove('active');
+    });
+
+    // Cloud Modal
 }
 
 function toggleModal(active) {
@@ -154,12 +209,137 @@ function loadVessels() {
     }
 }
 
-// handleExcelUpload removed
+async function handleExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    showToast("Processing Excel file...", "info");
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonData.length === 0) {
+                alert("Excel file appears to be empty.");
+                return;
+            }
+
+            console.log("First row keys:", Object.keys(jsonData[0]));
+
+            let addedCount = 0;
+            let updatedCount = 0;
+            let debugInfo = "";
+
+            jsonData.forEach((row, index) => {
+                // Flexible column matching (case-insensitive keys)
+                const keys = Object.keys(row);
+                const getKey = (target) => keys.find(k => k && k.toString().toLowerCase().includes(target));
+
+                // Debug first row only
+                if (index === 0) {
+                    debugInfo = `Found columns: ${keys.join(', ')}`;
+                    console.log("Debug Info:", debugInfo);
+                }
+
+                const nameKey = getKey('name') || getKey('vessel');
+                const imoKey = getKey('imo');
+                const ghgKey = getKey('ghg') || getKey('intensity');
+                const cbKey = getKey('compliance') || getKey('balance') || getKey('cb');
+
+                if (nameKey && (ghgKey || cbKey)) {
+                    const name = row[nameKey];
+                    const imo = imoKey ? row[imoKey] : "N/A";
+                    const ghg = parseFloat(row[ghgKey] || 94.1);
+                    const cb = parseFloat(row[cbKey] || 0);
+
+                    // ROBUST MATCHING STRATEGY
+                    // 1. Normalize inputs
+                    const normalizeStr = (str) => str ? String(str).trim().toLowerCase() : "";
+                    const safeImo = imo && imo !== "N/A" ? String(imo).trim() : null;
+
+                    // 2. Try match by IMO first (Unique Identifier)
+                    let existingIndex = -1;
+                    if (safeImo) {
+                        existingIndex = vessels.findIndex(v => {
+                            const vImo = v.imo && v.imo !== "N/A" ? String(v.imo).trim() : null;
+                            return vImo === safeImo;
+                        });
+                    }
+
+                    // 3. Fallback: Try match by Name if IMO match failed
+                    if (existingIndex === -1 && name) {
+                        existingIndex = vessels.findIndex(v => normalizeStr(v.name) === normalizeStr(name));
+                    }
+
+                    if (existingIndex !== -1) {
+                        // UPDATE EXISTING
+                        // We update keywords to ensure consistency
+                        vessels[existingIndex].name = name;
+                        if (safeImo) vessels[existingIndex].imo = safeImo; // Update IMO if the incoming one is valid
+                        vessels[existingIndex].ghg = ghg;
+                        vessels[existingIndex].cb = cb;
+                        vessels[existingIndex].status = cb >= 0 ? "surplus" : "deficit";
+                        updatedCount++;
+                    } else {
+                        // ADD NEW
+                        vessels.push({
+                            id: Date.now() + Math.random(),
+                            name,
+                            imo: safeImo || "N/A",
+                            ghg,
+                            cb,
+                            status: cb >= 0 ? "surplus" : "deficit",
+                            poolId: null,
+                            selected: false
+                        });
+                        addedCount++;
+                    }
+
+                } else if (index === 0) {
+                    console.warn("Row 1 failed match. NameKey:", nameKey, "GHG/CB:", ghgKey, cbKey);
+                }
+            });
+
+            if (addedCount > 0 || updatedCount > 0) {
+                saveVessels();
+                updateDashboard();
+                showToast(`Import Success: ${addedCount} added, ${updatedCount} updated.`);
+            } else {
+                alert(`No valid vessels found!\n\n${debugInfo}\n\nRequired: 'Name' AND ('GHG' OR 'Compliance')`);
+            }
+
+        } catch (error) {
+            console.error("Excel parse error:", error);
+            alert(`Failed to parse Excel: ${error.message}. \nCheck console for details.`);
+        }
+        // Reset input so same file can be selected again if needed
+        event.target.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+}
 
 // NOTE: Automatic Sync Logic
 // If a valid public URL is provided in the future, it can be set here.
 // const AUTO_SYNC_URL = "https://example.com/public_fleet_data.xlsx"; 
 // if (typeof AUTO_SYNC_URL !== 'undefined' && AUTO_SYNC_URL) { ... fetch logic ... }
+
+// Search Toggle
+function toggleSearch() {
+    const searchPanel = document.getElementById('search-bar-panel');
+    if (!searchPanel) return;
+
+    searchPanel.classList.toggle('hidden');
+
+    // If opening, focus name field
+    if (!searchPanel.classList.contains('hidden')) {
+        setTimeout(() => document.getElementById('filter-name').focus(), 50);
+    }
+}
 
 function addVessel() {
     const name = document.getElementById('vessel-name').value;
@@ -277,7 +457,7 @@ async function saveGlobalStateToAWS() {
         });
         if (response.ok) {
             console.log("Cloud state synchronized");
-            // showToast("Cloud Sync Successful", "info");
+            showToast("Cloud Sync Successful", "info");
         } else {
             console.error("Cloud sync failed:", response.status);
             showToast("Cloud Sync Failed. Check internet.", "error");
@@ -342,13 +522,17 @@ function toggleTheme(event) {
 
 function toggleSearch() {
     isSearchActive = !isSearchActive;
-    document.getElementById('vessel-thead').classList.toggle('filters-active', isSearchActive);
+    ['filter-name', 'filter-imo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', !isSearchActive);
+    });
 }
 
 function getFilteredVessels() {
     return vessels.filter(v => {
         const name = v.name ? v.name.toString().toLowerCase() : "";
-        return name.includes(filters.name);
+        const imo = v.imo ? v.imo.toString().toLowerCase() : "";
+        return name.includes(filters.name) && imo.includes(filters.imo);
     });
 }
 
@@ -661,13 +845,27 @@ function handleManualPooling() {
     showToast(`Manual Pool ${newPoolId} created.`);
 }
 
-function resetFleet() {
-    if (!confirm("Are you sure you want to clear the entire fleet? This will sync to Cloud.")) return;
+// Reset Fleet -> Clear All Data (Triggered by Modal)
+function executeClearAllData() {
     vessels = [];
     currentPoolIndex = 0;
     globalPoolCounter = 0;
-    saveVessels(true); // This clears both local and Cloud
+    saveVessels(true);
     updateDashboard();
+    showToast("All data deleted.");
+}
+
+// Reset Pooling -> Only clear pool assignments (Triggered by Modal)
+function executeResetPooling() {
+    vessels.forEach(v => {
+        v.poolId = null;
+        v.status = v.cb >= 0 ? "surplus" : "deficit";
+        v.selected = false;
+    });
+
+    updateDashboard();
+    saveVessels(true);
+    showToast("Pooling reset. Fleet data retained.");
 }
 
 function updateDashboard(silent = false) {
@@ -681,6 +879,7 @@ function renderVessels() {
     const list = document.getElementById('vessel-list');
     const emptyState = document.getElementById('empty-state');
     const footer = document.getElementById('vessel-footer');
+
 
     list.innerHTML = '';
 
@@ -704,18 +903,19 @@ function renderVessels() {
 
     let totalCB = 0;
     let totalPenalty = 0;
+    let totalSavings = 0;
 
     Object.keys(groups).sort().forEach(pId => {
         const poolVessels = groups[pId];
         const poolCB = poolVessels.reduce((sum, v) => sum + v.cb, 0);
 
-        // Initial individual penalties for vessels in this pool
+        // Initial individual penalties for vessels in this pool (Before Pooling)
         const initialIndividualPoolPenalty = poolVessels.reduce((sum, v) => {
             if (v.cb >= 0) return sum;
             return sum + (Math.abs(v.cb) / v.ghg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
         }, 0);
 
-        // Net Pool Penalty
+        // Net Pool Penalty (After Pooling)
         let netPoolPenalty = 0;
         if (poolCB < 0) {
             const avgGhg = poolVessels.reduce((s, m) => s + m.ghg, 0) / poolVessels.length;
@@ -724,6 +924,7 @@ function renderVessels() {
 
         // Saved amount in this pool
         const poolSaved = initialIndividualPoolPenalty - netPoolPenalty;
+        totalSavings += poolSaved;
 
         // Add a clean group header row
         if (pId !== 'Unpooled') {
@@ -731,7 +932,7 @@ function renderVessels() {
             headerRow.className = 'pool-group-header-row';
 
             headerRow.innerHTML = `
-                <td colspan="9" class="pool-group-header">
+                <td colspan="10" class="pool-group-header">
                     <div class="pool-title">
                         <span class="pool-badge">${pId}</span>
                         <span class="pool-vessel-count">${poolVessels.length} ${poolVessels.length === 1 ? 'Vessel' : 'Vessels'}</span>
@@ -745,26 +946,40 @@ function renderVessels() {
             const row = document.createElement('tr');
             if (v.selected) row.classList.add('selected');
 
-            // Financial Impact Logic (Saving if CB > 0, Penalty if CB < 0)
-            const energyImpactMJ = Math.abs(v.cb) / v.ghg;
-            const monetaryValue = (energyImpactMJ / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
-
-            let penalty = 0;
+            // Financial Impact Logic
+            // 1. Calculate potential standalone penalty (if deficit)
+            let standalonePenalty = 0;
             if (v.cb < 0) {
-                penalty = monetaryValue;
-                totalPenalty += penalty;
-            } else {
-                // Surplus contribution value (not a penalty)
-                // totalPenalty is unaffected here for individual unpooled view
+                standalonePenalty = (Math.abs(v.cb) / v.ghg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
             }
+
+            // 2. Logic for Columns
+            let displayPenalty = '—';
+            let displaySavings = '—';
+
+            if (v.cb < 0) {
+                // It has a standalone penalty
+                displayPenalty = `€${Math.floor(standalonePenalty).toLocaleString()}`;
+            } else {
+                // It generates savings (by offsetting deficit)
+                // We display basic surplus value here or just dash? 
+                // Requirement: "for positive deficit vessel need to create another column for Savings"
+                // Interpret: Surplus vessels = Savings? Or Deficit vessels that are pooled = Savings?
+                // Usually "Savings" is the avoided penalty.
+                // For a surplus vessel, its "monetary value" is potential savings.
+                const surplusValue = (v.cb / v.ghg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
+                displaySavings = `€${Math.floor(surplusValue).toLocaleString()}`;
+            }
+
+            // Accumulate Global Totals logic is complex because of Pooling.
+            // We track "Total Penalty Payble" and "Total Savings Realized"
 
             totalCB += v.cb;
 
-            // Conditional Coloring: Green for surplus, Red for deficit
+            // Conditional Coloring
             const impactClass = v.cb >= 0 ? 'text-success' : 'text-error';
-            const impactPrefix = v.cb >= 0 ? '+' : '-';
 
-            // Pool ID Column Content (Static or Dropdown)
+            // Pool ID Column Content
             let poolCellContent = v.poolId ? `<span class="pool-tag">${v.poolId}</span>` : '—';
 
             if (isManualMode) {
@@ -787,7 +1002,8 @@ function renderVessels() {
                 <td class="col-ghg">${v.ghg}</td>
                 <td class="${impactClass} col-cb">${v.cb.toLocaleString()}<span class="unit-label">gCO2eq</span></td>
                 <td class="col-pool">${poolCellContent}</td>
-                <td class="${impactClass} col-impact">${impactPrefix}€${monetaryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                <td class="text-error col-impact text-right">${displayPenalty}</td>
+                <td class="text-success col-impact text-right">${displaySavings}</td>
                 <td class="col-status text-center"><span class="status-badge ${v.status}">${v.status}</span></td>
                 <td class="col-actions">
                     <button onclick="deleteVessel(${v.id})" class="btn-delete" title="Delete Vessel">
@@ -798,26 +1014,28 @@ function renderVessels() {
             list.appendChild(row);
         });
 
-        // Add a group footer with summary stats exactly under the correct columns
+        // Add a group footer with summary stats
         if (pId !== 'Unpooled') {
             const footerRow = document.createElement('tr');
             footerRow.className = 'pool-group-footer-row';
 
             const cbClass = poolCB >= 0 ? 'text-success' : 'text-error';
 
-            // Columns: Select, IMO, Name, GHG, CB, Pool, Impact, Status, Actions
-            // Index: 0, 1, 2, 3, 4, 5, 6, 7, 8
             footerRow.innerHTML = `
                 <td class="manual-col"></td>
                 <td colspan="3" class="text-right summary-label">${pId} SUM:</td>
                 <td class="pool-summary-cell text-right ${cbClass} text-bold">
                     ${poolCB.toLocaleString()}<span class="unit-label">gCO2eq</span>
                 </td>
-                <td></td><!--Pool ID-- >
+                <td></td>
                 <td class="pool-summary-cell text-right">
                     <div class="pool-summary-item">
-                        <span class="summary-label">SAVED:</span>
-                        <span class="text-success text-bold">€${Math.abs(poolSaved).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                         ${netPoolPenalty > 0 ? `<span class="text-error">Pays: €${Math.floor(netPoolPenalty).toLocaleString()}</span>` : '<span class="text-success">Compliant</span>'}
+                    </div>
+                </td>
+                <td class="pool-summary-cell text-right">
+                    <div class="pool-summary-item">
+                        <span class="text-success text-bold">Saved: €${Math.abs(poolSaved).toLocaleString(undefined, { minimumFractionDigits: 0 })}</span>
                     </div>
                 </td>
                 <td colspan="2"></td>
@@ -826,7 +1044,7 @@ function renderVessels() {
         }
     });
 
-    // Total Penalty: Show net collective status for unpooled + pooled
+    // Total Penalty: Realized penalty after optimization
     let totalFleetPenalty = 0;
     Object.keys(groups).forEach(pId => {
         const poolVessels = groups[pId];
@@ -842,18 +1060,25 @@ function renderVessels() {
         }
     });
 
+    // Total Savings: Initial - Realized
+    // (This is already calculated in totalSavings accumulator above per-pool, but let's re-verify)
+    // Actually, simple sum of poolSaved is safer
+
     // Total Footers Summary
     const footerSummary = document.getElementById('vessel-footer');
     footerSummary.innerHTML = `
         <tr class="total-row">
             <td class="manual-col"></td>
-            <td colspan="3" class="text-right summary-label">TOTAL FLEET SUM:</td>
+            <td colspan="3" class="text-right summary-label">TOTAL FLEET:</td>
             <td class="text-bold text-right ${totalCB < 0 ? 'text-error' : 'text-success'}" id="total-cb-cell">
                 ${totalCB.toLocaleString()} gCO2eq
             </td>
             <td></td>
-            <td class="text-bold text-right ${totalFleetPenalty > 0 ? 'text-error' : 'text-success'}" id="total-penalty-cell">
-                €${totalFleetPenalty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <td class="text-bold text-right text-error" id="total-penalty-cell">
+                €${totalFleetPenalty.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </td>
+            <td class="text-bold text-right text-success" id="total-savings-cell">
+                €${totalSavings.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </td>
             <td colspan="2"></td>
         </tr >
@@ -1184,10 +1409,16 @@ function exportPDF() {
     const doc = new jsPDF();
 
     // --- Template Assets (Logo) ---
-    // Inject Base64 Logo directly to bypass local file:// restrictions
-    if (typeof LOGO_BASE64 !== 'undefined' && LOGO_BASE64) {
+    const logoImg = document.querySelector('.brand-logo');
+    if (logoImg) {
         try {
-            doc.addImage(LOGO_BASE64, 'PNG', 150, 10, 35, 12);
+            const canvas = document.createElement("canvas");
+            canvas.width = logoImg.naturalWidth;
+            canvas.height = logoImg.naturalHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(logoImg, 0, 0);
+            const logoData = canvas.toDataURL("image/png");
+            doc.addImage(logoData, 'PNG', 150, 10, 35, 12); // Right aligned
         } catch (e) {
             console.warn("Could not add logo to PDF:", e);
         }

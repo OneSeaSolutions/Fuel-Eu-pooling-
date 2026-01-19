@@ -33,8 +33,10 @@
                 <div class="user-actions">
                     <!-- Excel Upload Removed -->
                 </div>
-                <button id="add-vessel-btn" class="btn btn-primary">
-                    <span class="icon">+</span> Add Vessel
+                <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" />
+                <button id="upload-excel-btn" class="btn btn-primary"
+                    onclick="document.getElementById('excel-upload').click()">
+                    <span class="icon">📂</span> Upload Excel
                 </button>
             </div>
             <button id="theme-toggle" class="btn btn-icon theme-toggle-fixed" aria-label="Toggle Theme">
@@ -83,10 +85,23 @@
                         <div class="actions">
                             <button id="search-toggle-btn" class="btn btn-ghost"
                                 title="Toggle Search Filters">🔍</button>
-                            <button id="run-pooling-btn" class="btn btn-accent pulse">Optimize Fleet</button>
+                            <button id="run-pooling-btn" class="btn btn-accent pulse">Optimize
+                                Fleet</button>
                             <button id="save-results-btn" class="btn btn-primary" style="display: none;">Save
                                 Results</button>
                             <button id="reset-btn" class="btn btn-ghost">Reset</button>
+                        </div>
+                    </div>
+
+                    <!-- Search Bar Panel (Hidden by default) -->
+                    <div id="search-bar-panel" class="search-bar-panel hidden">
+                        <div class="search-group">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="filter-name" placeholder="Search by Vessel Name...">
+                        </div>
+                        <div class="search-group">
+                            <span class="search-icon">🚢</span>
+                            <input type="text" id="filter-imo" placeholder="Search by IMO Number...">
                         </div>
                     </div>
 
@@ -94,25 +109,30 @@
                         <table id="vessel-table">
                             <thead>
                                 <tr>
+                                <tr>
                                     <th class="manual-col col-select"><input type="checkbox" id="select-all"></th>
-                                    <th class="col-imo" id="vessel-thead">
-                                        IMO Number
-                                    </th>
-                                    <th class="col-name">
-                                        Vessel Name
-                                        <div class="filter-container">
-                                            <input type="text" id="filter-name" class="header-filter"
-                                                placeholder="Filter...">
-                                        </div>
-                                    </th>
+                                    <th class="col-imo">IMO Number</th>
+                                    <th class="col-name">Vessel Name</th>
                                     <th class="col-ghg text-right">GHG Intensity</th>
                                     <th class="col-cb no-transform text-right">Compliance Balance <span
                                             class="unit-label">(gCO2eq)</span>
                                     </th>
                                     <th class="col-pool">Pool ID</th>
                                     <th class="col-impact text-right">Penalty (€)</th>
+                                    <th class="col-impact text-right">Savings (€)</th>
                                     <th class="col-status text-center">Status</th>
-                                    <th class="col-actions"></th>
+                                    <th class="col-actions">
+                                        <button id="delete-all-btn" class="btn-delete-all" title="Delete All Data">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path
+                                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2v2">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody id="vessel-list">
@@ -126,6 +146,7 @@
                                     </td>
                                     <td></td>
                                     <td id="total-penalty-cell" class="text-bold text-error">€0</td>
+                                    <td id="total-savings-cell" class="text-bold text-success">€0</td>
                                     <td colspan="2"></td>
                                 </tr>
                             </tfoot>
@@ -219,6 +240,54 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-ghost close-cloud-modal">Cancel</button>
                     <button id="save-api-btn" class="btn btn-primary">Connect & Sync</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reset Confirmation Modal -->
+        <div id="reset-confirmation-modal" class="modal">
+            <div class="modal-content" style="max-width: 450px;">
+                <div class="modal-header">
+                    <h2>Reset Pooling Optimization?</h2>
+                    <button class="close-reset-modal close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                        This action will <strong>clear all pool assignments</strong> and reset every vessel to its
+                        default
+                        status.
+                    </p>
+                    <p style="color: var(--text-main); font-weight: 500;">
+                        ✅ Your vessel data will NOT be deleted.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost close-reset-modal">Cancel</button>
+                    <button id="confirm-reset-btn" class="btn btn-primary">Yes, Reset Pooling</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Verification Modal -->
+        <div id="delete-confirmation-modal" class="modal">
+            <div class="modal-content" style="max-width: 450px; border-color: var(--error);">
+                <div class="modal-header">
+                    <h2 style="color: var(--error);">⚠️ Delete All Data?</h2>
+                    <button class="close-delete-modal close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                        This will <strong>permanently delete</strong> your entire fleet from both this device and the
+                        Cloud database.
+                    </p>
+                    <p class="text-error" style="font-weight: 700;">
+                        🚨 This action cannot be undone.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost close-delete-modal">Cancel</button>
+                    <button id="confirm-delete-all-btn" class="btn btn-accent"
+                        style="background: var(--error); border-color: var(--error);">Yes, Delete Everything</button>
                 </div>
             </div>
         </div>
