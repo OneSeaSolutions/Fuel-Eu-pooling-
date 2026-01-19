@@ -83,8 +83,7 @@
                             <button id="manual-mode-btn" class="tab-btn">Manual Pooling</button>
                         </div>
                         <div class="actions">
-                            <button id="search-toggle-btn" class="btn btn-ghost"
-                                title="Toggle Search Filters">🔍</button>
+
                             <button id="run-pooling-btn" class="btn btn-accent pulse">Optimize
                                 Fleet</button>
                             <button id="save-results-btn" class="btn btn-primary" style="display: none;">Save
@@ -93,30 +92,17 @@
                         </div>
                     </div>
 
-                    <!-- Search Bar Panel (Hidden by default) -->
-                    <div id="search-bar-panel" class="search-bar-panel hidden">
-                        <div class="search-group">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="filter-name" placeholder="Search by Vessel Name...">
-                        </div>
-                        <div class="search-group">
-                            <span class="search-icon">🚢</span>
-                            <input type="text" id="filter-imo" placeholder="Search by IMO Number...">
-                        </div>
-                    </div>
 
                     <div class="vessel-table-wrapper">
                         <table id="vessel-table">
                             <thead>
-                                <tr>
-                                <tr>
+                                <tr class="header-labels">
                                     <th class="manual-col col-select"><input type="checkbox" id="select-all"></th>
                                     <th class="col-imo">IMO Number</th>
                                     <th class="col-name">Vessel Name</th>
                                     <th class="col-ghg text-right">GHG Intensity</th>
                                     <th class="col-cb no-transform text-right">Compliance Balance <span
-                                            class="unit-label">(gCO2eq)</span>
-                                    </th>
+                                            class="unit-label">(gCO2eq)</span></th>
                                     <th class="col-pool">Pool ID</th>
                                     <th class="col-impact text-right">Penalty (€)</th>
                                     <th class="col-impact text-right">Savings (€)</th>
@@ -134,6 +120,7 @@
                                         </button>
                                     </th>
                                 </tr>
+
                             </thead>
                             <tbody id="vessel-list">
                                 <!-- Data injected here -->

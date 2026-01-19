@@ -543,6 +543,8 @@ th {
     backdrop-filter: blur(12px);
     /* Allow text wrapping */
     vertical-align: bottom;
+    white-space: normal;
+    line-height: 1.2;
 }
 
 th.text-right {
@@ -605,14 +607,12 @@ tr.selected td {
 .col-ghg {
     min-width: 100px;
     text-align: right;
-    white-space: nowrap;
 }
 
 
 .col-cb {
     min-width: 160px;
     text-align: right;
-    white-space: nowrap;
 }
 
 .col-pool {
@@ -1519,64 +1519,35 @@ body.manual-mode .manual-col {
     border-radius: 2px;
 }
 
-/* Search Bar Panel */
-.search-bar-panel {
+/* Inline Table Filters */
+.filter-row {
     background: var(--card-bg-elevated);
-    border-bottom: 1px solid var(--border);
-    padding: 1rem 1.5rem;
-    display: flex;
-    gap: 1rem;
-    animation: slideDown 0.3s ease-out;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.search-bar-panel.hidden {
+.filter-row.hidden {
     display: none;
 }
 
-.search-group {
-    position: relative;
-    flex: 1;
-    max-width: 300px;
-}
-
-.search-group input {
-    width: 100%;
-    padding: 0.6rem 1rem 0.6rem 2.5rem;
+.btn-delete-all {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    background: var(--bg-dark);
-    color: var(--text-main);
-    font-size: 0.9rem;
     transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.search-group input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-    outline: none;
+.btn-delete-all:hover {
+    color: var(--error);
+    background: rgba(239, 68, 68, 0.1);
 }
 
-.search-group .search-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0.5;
-    pointer-events: none;
-    font-size: 0.9rem;
-}
 
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 /* Responsive Design */
 @media (max-width: 1024px) {
@@ -1639,11 +1610,5 @@ body.manual-mode .manual-col {
         font-size: 0.75rem;
     }
 
-    .search-bar-panel {
-        flex-direction: column;
-    }
 
-    .search-group {
-        max-width: 100%;
-    }
 }

@@ -10,7 +10,7 @@ let isManualMode = false;
 let isReportsMode = false;
 let currentPoolIndex = 0; // Changed from currentPoolId
 let filters = { imo: '', name: '' };
-let isSearchActive = false;
+
 
 // Constants from regulation context
 const PENALTY_RATE_EUR_PER_TONNE = 2400;
@@ -88,36 +88,17 @@ function setupEventListeners() {
     document.getElementById('confirm-save-btn').addEventListener('click', handleSaveResults);
     // Reset and Delete listeners moved to Modal section below
 
-    // Search Toggle
-    const searchBtn = document.getElementById('search-toggle-btn');
-    if (searchBtn) searchBtn.addEventListener('click', toggleSearch);
+
 
     // Multi-select
     const selectAll = document.getElementById('select-all');
     if (selectAll) {
         selectAll.addEventListener('change', (e) => {
-            const filteredVessels = getFilteredVessels();
-            filteredVessels.forEach(v => v.selected = e.target.checked);
+            vessels.forEach(v => v.selected = e.target.checked);
             renderVessels();
         });
     }
-    // Filter Inputs (Attach directly to new panel inputs)
-    const filterNameInput = document.getElementById('filter-name');
-    const filterImoInput = document.getElementById('filter-imo');
 
-    const handleSearchInput = () => {
-        // Ensure global filters object is updated
-        if (typeof filters === 'undefined') window.filters = { name: '', imo: '' };
-
-        filters.name = filterNameInput ? filterNameInput.value.toLowerCase() : '';
-        filters.imo = filterImoInput ? filterImoInput.value.toLowerCase() : '';
-
-        // Trigger update
-        updateDashboard();
-    };
-
-    if (filterNameInput) filterNameInput.addEventListener('input', handleSearchInput);
-    if (filterImoInput) filterImoInput.addEventListener('input', handleSearchInput);
 
     // Modals
     // Reset Modal
@@ -330,13 +311,13 @@ async function handleExcelUpload(event) {
 
 // Search Toggle
 function toggleSearch() {
-    const searchPanel = document.getElementById('search-bar-panel');
-    if (!searchPanel) return;
+    const filterRow = document.getElementById('filter-row');
+    if (!filterRow) return;
 
-    searchPanel.classList.toggle('hidden');
+    filterRow.classList.toggle('hidden');
 
     // If opening, focus name field
-    if (!searchPanel.classList.contains('hidden')) {
+    if (!filterRow.classList.contains('hidden')) {
         setTimeout(() => document.getElementById('filter-name').focus(), 50);
     }
 }
@@ -520,21 +501,9 @@ function toggleTheme(event) {
     });
 }
 
-function toggleSearch() {
-    isSearchActive = !isSearchActive;
-    ['filter-name', 'filter-imo'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle('hidden', !isSearchActive);
-    });
-}
 
-function getFilteredVessels() {
-    return vessels.filter(v => {
-        const name = v.name ? v.name.toString().toLowerCase() : "";
-        const imo = v.imo ? v.imo.toString().toLowerCase() : "";
-        return name.includes(filters.name) && imo.includes(filters.imo);
-    });
-}
+
+
 
 function deleteVessel(id) {
     vessels = vessels.filter(v => v.id !== id);
@@ -883,7 +852,7 @@ function renderVessels() {
 
     list.innerHTML = '';
 
-    const filteredVessels = getFilteredVessels();
+    const filteredVessels = vessels;
 
     if (vessels.length === 0) {
         emptyState.style.display = 'flex';
