@@ -18,10 +18,18 @@ const VLSFO_ENERGY_MJ_PER_TONNE = 41000;
 const DEFAULT_MAX_POOL_SIZE = 10;
 const AWS_API_ENDPOINT = "https://cqwj9z68z6.execute-api.us-east-1.amazonaws.com/prod/fleet";
 
+// Mock Owner List for Demo
+const MOCK_OWNERS = ["Maersk Line", "MSC", "CMA CGM", "Hapag-Lloyd", "ONE", "Evergreen", "Cosco"];
+
+function getRandomOwner() {
+    return MOCK_OWNERS[Math.floor(Math.random() * MOCK_OWNERS.length)];
+}
+
 /* ... (rest of file) ... */
 
 // Initial cloud fetch moved to fetchGlobalStateFromAWS() and called in init()
 let globalPoolCounter = 0;
+// activeOwnerFilters declared in search/filter section below
 
 // Base64 Logo (to bypass CORS on local file:// execution)
 const LOGO_BASE64 = "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";
@@ -37,7 +45,12 @@ function init() {
     initTheme();
     loadVessels(); // Load local vessels first for immediate UI
     loadSavedReports(); // Load local reports first for immediate UI
+
+    // Initialize Dashboard
     updateDashboard(true);
+
+    // Initialize Owner Filters
+    renderOwnerFilters();
 
     // Then trigger cloud sync which will update the UI again when data arrives
     fetchGlobalStateFromAWS();
@@ -70,7 +83,8 @@ function setupEventListeners() {
     // Toggle Saved Reports Panel
     const toggleBtn = document.getElementById('toggle-saved-panel');
     if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => {
+        toggleBtn.addEventListener('click', (e) => {
+            if (e) e.stopPropagation();
             document.getElementById('saved-files-bar').classList.toggle('collapsed');
         });
     }
@@ -231,12 +245,14 @@ async function handleExcelUpload(event) {
                 const imoKey = getKey('imo');
                 const ghgKey = getKey('ghg') || getKey('intensity');
                 const cbKey = getKey('compliance') || getKey('balance') || getKey('cb');
+                const ownerKey = getKey('owner') || getKey('company');
 
                 if (nameKey && (ghgKey || cbKey)) {
                     const name = row[nameKey];
                     const imo = imoKey ? row[imoKey] : "N/A";
                     const ghg = parseFloat(row[ghgKey] || 94.1);
                     const cb = parseFloat(row[cbKey] || 0);
+                    const owner = ownerKey ? row[ownerKey] : "Unknown";
 
                     // ROBUST MATCHING STRATEGY
                     // 1. Normalize inputs
@@ -258,22 +274,21 @@ async function handleExcelUpload(event) {
                     }
 
                     if (existingIndex !== -1) {
-                        // UPDATE EXISTING
-                        // We update keywords to ensure consistency
                         vessels[existingIndex].name = name;
-                        if (safeImo) vessels[existingIndex].imo = safeImo; // Update IMO if the incoming one is valid
+                        if (safeImo) vessels[existingIndex].imo = safeImo;
                         vessels[existingIndex].ghg = ghg;
                         vessels[existingIndex].cb = cb;
+                        vessels[existingIndex].owner = owner;
                         vessels[existingIndex].status = cb >= 0 ? "surplus" : "deficit";
                         updatedCount++;
                     } else {
-                        // ADD NEW
                         vessels.push({
                             id: Date.now() + Math.random(),
                             name,
                             imo: safeImo || "N/A",
                             ghg,
                             cb,
+                            owner,
                             status: cb >= 0 ? "surplus" : "deficit",
                             poolId: null,
                             selected: false
@@ -309,17 +324,137 @@ async function handleExcelUpload(event) {
 // const AUTO_SYNC_URL = "https://example.com/public_fleet_data.xlsx"; 
 // if (typeof AUTO_SYNC_URL !== 'undefined' && AUTO_SYNC_URL) { ... fetch logic ... }
 
-// Search Toggle
-function toggleSearch() {
-    const filterRow = document.getElementById('filter-row');
-    if (!filterRow) return;
+// Search & Filter Global State
+let activeOwnerFilters = new Set();
+let imoSearchTerm = '';
+let nameSearchTerm = '';
 
-    filterRow.classList.toggle('hidden');
+function toggleHeaderSearch(column, event) {
+    if (event) event.stopPropagation();
+    const containerId = `search-${column}-container`;
+    const container = document.getElementById(containerId);
+    container.classList.toggle('hidden');
 
-    // If opening, focus name field
-    if (!filterRow.classList.contains('hidden')) {
-        setTimeout(() => document.getElementById('filter-name').focus(), 50);
+    // Focus the input when showing
+    if (!container.classList.contains('hidden')) {
+        setTimeout(() => container.querySelector('input').focus(), 100);
     }
+}
+
+function toggleOwnerFilterPopup(event) {
+    if (event) event.stopPropagation();
+    const popup = document.getElementById('owner-filter-popup');
+    popup.classList.toggle('hidden');
+
+    // Focus search if showing
+    if (!popup.classList.contains('hidden')) {
+        setTimeout(() => document.getElementById('popup-owner-search').focus(), 100);
+    }
+}
+
+// Close popups when clicking outside
+window.addEventListener('click', (e) => {
+    // Header searches
+    ['imo', 'name'].forEach(col => {
+        const container = document.getElementById(`search-${col}-container`);
+        const trigger = container?.parentElement.querySelector('.btn-filter-trigger');
+        if (container && !container.contains(e.target) && !trigger?.contains(e.target)) {
+            // Only hide if input is empty, otherwise keep visible to show active filter?
+            // User said "hidden without clicking", but maybe we stay visible if active.
+            // Let's hide it for now as requested.
+            container.classList.add('hidden');
+        }
+    });
+
+    // Owner popup
+    const ownerPopup = document.getElementById('owner-filter-popup');
+    const ownerTrigger = ownerPopup?.parentElement.querySelector('.btn-filter-trigger');
+    if (ownerPopup && !ownerPopup.contains(e.target) && !ownerTrigger?.contains(e.target)) {
+        ownerPopup.classList.add('hidden');
+    }
+});
+
+function filterTable() {
+    imoSearchTerm = document.getElementById('search-imo').value.toLowerCase();
+    nameSearchTerm = document.getElementById('search-name').value.toLowerCase();
+    renderVessels();
+}
+
+function handleSearch(term) {
+    // Legacy support if needed, but we use filterTable now
+    filterTable();
+}
+
+function updateStrategyUI() {
+    // Reset any UI specific states if needed
+    // Then run optimizer if in auto mode
+    if (!isManualMode) {
+        runOptimizer();
+    }
+}
+
+function getFilteredVessels() {
+    return vessels.filter(v => {
+        const matchesImo = !imoSearchTerm || (v.imo || "").toString().toLowerCase().includes(imoSearchTerm);
+        const matchesName = !nameSearchTerm || (v.name || "").toLowerCase().includes(nameSearchTerm);
+        const matchesOwner = activeOwnerFilters.size === 0 || activeOwnerFilters.has(v.owner || "Unknown");
+        return matchesImo && matchesName && matchesOwner;
+    });
+}
+
+function renderOwnerFilters() {
+    const list = document.getElementById('popup-owner-list');
+    const searchInput = document.getElementById('popup-owner-search');
+    if (!list) return;
+
+    // Get unique owners from current vessels
+    const uniqueOwners = [...new Set(vessels.map(v => v.owner || "Unknown"))].sort();
+    const searchVal = searchInput ? searchInput.value.toLowerCase() : "";
+
+    list.innerHTML = uniqueOwners
+        .filter(owner => owner.toLowerCase().includes(searchVal))
+        .map(owner => `
+            <div class="popup-item" onclick="toggleOwnerFilter('${owner}', event)">
+                <input type="checkbox" ${activeOwnerFilters.has(owner) ? 'checked' : ''} onclick="event.stopPropagation(); toggleOwnerFilter('${owner}', event)">
+                <span class="owner-name">${owner}</span>
+            </div>
+        `).join('');
+
+    // Update the visual dot divider if filters are active
+    const dot = document.getElementById('owner-filter-dot');
+    if (dot) {
+        dot.classList.toggle('hidden', activeOwnerFilters.size === 0);
+    }
+}
+
+window.toggleOwnerFilter = function (owner, event) {
+    if (event) event.stopPropagation();
+    if (activeOwnerFilters.has(owner)) {
+        activeOwnerFilters.delete(owner);
+    } else {
+        activeOwnerFilters.add(owner);
+    }
+    renderOwnerFilters();
+    renderVessels();
+}
+
+window.clearOwnerFilters = function (event) {
+    if (event) event.stopPropagation();
+    activeOwnerFilters.clear();
+    const searchInput = document.getElementById('popup-owner-search');
+    if (searchInput) searchInput.value = '';
+    renderOwnerFilters();
+    renderVessels();
+}
+
+
+window.clearOwnerFilters = function (event) {
+    if (event) event.stopPropagation();
+    activeOwnerFilters.clear();
+    const searchInput = document.getElementById('owner-dropdown-search');
+    if (searchInput) searchInput.value = '';
+    renderOwnerFilters();
+    updateDashboard();
 }
 
 function addVessel() {
@@ -407,12 +542,13 @@ async function saveGlobalStateToAWS() {
 
     const reports = JSON.parse(localStorage.getItem('fuel_eu_reports') || '[]');
 
-    // AWS DynamoDB (via Boto3) doesn't like float types. 
-    // We round numerical values to satisfy the backend.
+    // AWS DynamoDB (via Boto3) doesn't like float types.
+    // We used to round, but now backend supports decimals.
+    // We ensure 2 decimal precision for GHG as requested.
     const sanitizeVessel = (v) => ({
         ...v,
-        ghg: Math.round(v.ghg || 0),
-        cb: Math.round(v.cb || 0)
+        ghg: Number((v.ghg || 0).toFixed(2)),
+        cb: Number((v.cb || 0).toFixed(2))
     });
 
     const sanitizeReport = (r) => ({
@@ -420,7 +556,7 @@ async function saveGlobalStateToAWS() {
         vessels: r.vessels.map(sanitizeVessel),
         stats: {
             ...r.stats,
-            totalCB: Math.round(r.stats.totalCB || 0)
+            totalCB: Number((r.stats.totalCB || 0).toFixed(2))
         }
     });
 
@@ -511,6 +647,12 @@ function deleteVessel(id) {
     updateDashboard();
 }
 
+
+// --- END OF CORE UTILS ---
+
+
+// --- OPTIMIZATION ALGORITHMS ---
+
 function runOptimizer() {
     if (isManualMode) {
         handleManualPooling();
@@ -524,155 +666,143 @@ function runOptimizer() {
         v.selected = false;
     });
 
-    let surpluses = vessels.filter(v => v.cb > 0).sort((a, b) => b.cb - a.cb); // Descending (Largest Surplus First)
-    let deficits = vessels.filter(v => v.cb < 0).sort((a, b) => a.cb - b.cb);  // Ascending (Largest Deficit First - e.g. -1.5M)
+    // Determine Strategy
+    const strategyMode = document.querySelector('input[name="poolStrategy"]:checked')?.value || 'multiple';
 
-    let pools = [];
-    globalPoolCounter = 0;
-
-    // Multi-Pool Target Zero Strategy
-    // Goal: Create multiple pools where Balance is close to 0 (but >= 0)
-    // Algo:
-    // 1. Pick largest surplus vessel.
-    // 2. Greedily add largest possible deficits that fit without making pool negative.
-    // 3. Save pool, repeat for next surplus vessel.
-
-    // Multi-Surplus Target Zero Strategy
-    // Goal: Use 100% of available Surplus to clear the maximum amount of Deficit.
-    // Approach:
-    // 1. Sort Deficits Largest to Smallest (Tackle the "Big Rocks" like Star Mariner first).
-    // 2. For each Deficit, recruit enough Surplus vessels to cover it.
-    // 3. Create a pool if successful.
-
-    // PHASE 1: Main Pooling (Best Fit Strategy)
-    // ----------------------------------------
-    // Sort logic remains: Largest Deficits First
-    let availableSurpluses = [...surpluses];
-    let availableDeficits = [...deficits];
-
-    // Sort Deficits: Largest magnitude (-1.5M) first
-    availableDeficits.sort((a, b) => a.cb - b.cb);
-
-    // Sort Surpluses: ASCENDING (Smallest First) for "Best Fit" check
-    availableSurpluses.sort((a, b) => a.cb - b.cb);
-
-    while (availableDeficits.length > 0) {
-        let targetDeficit = availableDeficits[0];
-        let requiredAmount = Math.abs(targetDeficit.cb);
-        let recruitedSurpluses = [];
-        let recruitedSum = 0;
-
-        // STRATEGY A: Best Fit (Single Vessel)
-        // Find the smallest surplus that covers the deficit alone
-        let bestFitIndex = availableSurpluses.findIndex(s => s.cb >= requiredAmount);
-
-        if (bestFitIndex !== -1) {
-            // Found a perfect single match!
-            let bestSurplus = availableSurpluses[bestFitIndex];
-            recruitedSurpluses.push(bestSurplus);
-            recruitedSum += bestSurplus.cb;
-        } else {
-            // STRATEGY B: Multi-Surplus Aggregation (Greedy from Largest)
-            // If no single vessel fits, we need to pool multiple.
-            // For this, we want the LARGEST surpluses first to minimize vessel count.
-            // We'll iterate backwards through our sorted-ascending list.
-            for (let i = availableSurpluses.length - 1; i >= 0; i--) {
-                let s = availableSurpluses[i];
-                recruitedSurpluses.push(s);
-                recruitedSum += s.cb;
-
-                if (recruitedSum >= requiredAmount) break;
-            }
-        }
-
-        // Commit the Pool
-        if (recruitedSum >= requiredAmount) {
-            let poolId = getFleetName(globalPoolCounter++);
-
-            // Metadata
-            targetDeficit.poolId = poolId;
-            targetDeficit.status = "pooled";
-            recruitedSurpluses.forEach(s => {
-                s.poolId = poolId;
-                s.status = "pooled";
-            });
-
-            // Create Pool
-            let newPool = {
-                id: poolId,
-                members: [targetDeficit, ...recruitedSurpluses],
-                totalCB: targetDeficit.cb + recruitedSum
-            };
-            pools.push(newPool);
-
-            // Cleanup Available Lists
-            availableDeficits.shift();
-            let usedIds = recruitedSurpluses.map(v => v.id);
-            availableSurpluses = availableSurpluses.filter(s => !usedIds.includes(s.id));
-
-        } else {
-            // Skip this deficit (cannot be pooled with current surplus)
-            availableDeficits.shift();
-            // Don't modify targetDeficit here, it remains unpooled
-        }
+    if (strategyMode === 'single') {
+        optimizeSinglePool();
+    } else {
+        optimizeMultiplePools();
     }
 
-    // PHASE 2: Gap Fill (Cleanup)
-    // ----------------------------------------
-    // Try to fit valid unpooled deficits into existing pools
-    let unpooledDeficits = deficits.filter(d => !d.poolId);
-
-    // Sort unpooled deficits (Smallest magnitude first?) - easier to fit small ones
-    // Deficits are negative, so ascending sort puts large magnitude (-1.5M) first.
-    // We want small magnitude (-10k) first: Descending sort.
-    unpooledDeficits.sort((a, b) => b.cb - a.cb);
-
-    unpooledDeficits.forEach(d => {
-        // Try each pool
-        for (let pool of pools) {
-            if (pool.totalCB + d.cb >= 0) {
-                // It fits!
-                d.poolId = pool.id;
-                d.status = "pooled";
-                pool.members.push(d);
-                pool.totalCB += d.cb;
-                break; // Stop looking for this vessel
-            }
-        }
-    });
-
-    // PHASE 3: Handle Remaining Surplus
-    // ----------------------------------------
-    if (availableSurpluses.length > 0) {
-        let leftoverPool = {
-            id: getFleetName(globalPoolCounter++),
-            members: [],
-            totalCB: 0
-        };
-        availableSurpluses.forEach(s => {
-            s.poolId = leftoverPool.id;
-            s.status = "pooled";
-            leftoverPool.members.push(s);
-            leftoverPool.totalCB += s.cb;
-        });
-        pools.push(leftoverPool);
-    }
-
-    // Reset unpooled
-    deficits.forEach(d => {
-        if (!d.poolId) {
-            d.poolId = null;
-            d.status = "deficit";
-        }
-    });
-
+    // Update UI & Persist
     updateDashboard();
-    saveVessels(true); // Persist optimization results (and sync any new Excel data) to Cloud
-    showToast(`Optimization Complete: ${pools.length} pools generated.`);
-
-    // Show save button after optimization
+    saveVessels(true);
+    showToast(`Optimization Complete: ${strategyMode === 'single' ? 'Single Fleet Pool' : 'Multiple Pools'} generated.`);
     document.getElementById('save-results-btn').style.display = 'inline-flex';
 }
+
+/**
+ * STRATEGY: Single Pool
+ * logic: "In single pool all the vessel deficit and surplus should be in one pool and the pool should end in positive."
+ * Approach:
+ * 1. Create ONE massive pool.
+ * 2. Add ALL Surplus vessels to it.
+ * 3. Add Deficit vessels (starting from LARGEST deficit/High Penalty) until pool CB approaches 0 but stays positive.
+ * 4. Any remaining Deficit vessels are left unpooled (pay penalty).
+ */
+function optimizeSinglePool() {
+    let surpluses = vessels.filter(v => v.cb >= 0);
+    // Sort Ascending Deficits (-5000, -100) -> so first element is -5000 (Biggest Deficit)
+    let deficits = vessels.filter(v => v.cb < 0).sort((a, b) => a.cb - b.cb);
+
+    const poolId = getFleetName(0);
+    let poolCB = 0;
+    let poolMembers = [];
+
+    // 1. Add ALL Surplus
+    surpluses.forEach(s => {
+        s.poolId = poolId;
+        s.status = 'pooled';
+        poolMembers.push(s);
+        poolCB += s.cb;
+    });
+
+    // 2. Greedily Add High-Penalty Deficits
+    // We iterate through sorted deficits. If adding one keeps Pool >= 0, we add it. 
+    // If the biggest one doesn't fit, we might fit a smaller one?
+    // Request says: "try to include all high deficit vessels ... so later the less deficit vessel only need to pay"
+    // So priority is high deficit. If high deficit fits, take it.
+
+    // But strict greedy: If the biggest doesn't fit, do we skip to next? 
+    // Yes, typical Knapsack approximation.
+
+    deficits.forEach(d => {
+        if (poolCB + d.cb >= 0) {
+            d.poolId = poolId;
+            d.status = 'pooled';
+            poolMembers.push(d);
+            poolCB += d.cb;
+        }
+    });
+
+    // Update global counter
+    globalPoolCounter = 1;
+}
+
+/**
+ * STRATEGY: Multiple Pools
+ * "Use this concept for multiple pooling as well."
+ * Logic:
+ * 1. Sort Deficits (High to Low).
+ * 2. For each High Deficit, try to find surplus to cover it.
+ */
+function optimizeMultiplePools() {
+    // Sort deficits by magnitude (largest deficit first, e.g., -100M)
+    // Sort surpluses by magnitude (largest surplus first, e.g., +200M)
+    let surplusPool = vessels.filter(v => v.cb >= 0).sort((a, b) => b.cb - a.cb);
+    let deficitPool = vessels.filter(v => v.cb < 0).sort((a, b) => a.cb - b.cb);
+
+    // Reset state
+    vessels.forEach(v => {
+        v.poolId = null;
+        v.status = v.cb >= 0 ? "surplus" : "deficit";
+    });
+
+    globalPoolCounter = 0;
+
+    // Aggressive Packing: 
+    // We create a pool, add the largest surplus, and then try to fit as many deficits as possible.
+    // If a deficit doesn't fit, we pull in another surplus vessel to "fuel" the pool further.
+
+    while (surplusPool.length > 0) {
+        let currentPoolId = getFleetName(globalPoolCounter++);
+        let currentPoolVessels = [];
+        let currentPoolBalance = 0;
+
+        // Start the pool with the largest available surplus
+        let firstSurplus = surplusPool.shift();
+        currentPoolVessels.push(firstSurplus);
+        currentPoolBalance += firstSurplus.cb;
+        firstSurplus.poolId = currentPoolId;
+        firstSurplus.status = 'pooled';
+
+        // Try to pack deficits
+        let i = 0;
+        while (i < deficitPool.length) {
+            let d = deficitPool[i];
+            let required = Math.abs(d.cb);
+
+            if (currentPoolBalance >= required) {
+                // Deficit fits!
+                currentPoolVessels.push(d);
+                currentPoolBalance -= required;
+                d.poolId = currentPoolId;
+                d.status = 'pooled';
+                deficitPool.splice(i, 1);
+                // Don't increment i, check the new element at this index
+            } else if (surplusPool.length > 0) {
+                // Doesn't fit, but we have more surpluses to pull in
+                let nextSurplus = surplusPool.shift();
+                currentPoolVessels.push(nextSurplus);
+                currentPoolBalance += nextSurplus.cb;
+                nextSurplus.poolId = currentPoolId;
+                nextSurplus.status = 'pooled';
+                // Now retry the same deficit (don't increment i)
+            } else {
+                // Doesn't fit and no more surpluses left to pull in
+                i++; // Skip this deficit and try a potentially smaller one
+            }
+        }
+    }
+
+    // Remaining deficits stay as "deficit"
+    deficitPool.forEach(d => {
+        d.poolId = null;
+        d.status = "deficit";
+    });
+}
+
 
 function openSaveModal() {
     const today = new Date();
@@ -838,9 +968,11 @@ function executeResetPooling() {
 }
 
 function updateDashboard(silent = false) {
-    // calculateRobinHoodAllocations(); // REMOVED per user request
+    calculateStats();
     renderVessels();
-    calculateStats(silent);
+    renderOwnerFilters();
+    renderSavedFilesBar();
+    if (!silent) showToast("Dashboard Updated", "info");
 }
 
 
@@ -852,14 +984,14 @@ function renderVessels() {
 
     list.innerHTML = '';
 
-    const filteredVessels = vessels;
+    const filteredVessels = getFilteredVessels();
 
     if (vessels.length === 0) {
-        emptyState.style.display = 'flex';
+        if (emptyState) emptyState.style.display = 'flex';
         footer.style.display = 'none';
         return;
     }
-    emptyState.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
     footer.style.display = 'table-footer-group';
 
     // Group vessels by Pool ID
@@ -968,8 +1100,9 @@ function renderVessels() {
                 </td>
                 <td class="col-imo"><strong>${v.imo}</strong></td>
                 <td class="col-name" title="${v.name}">${v.name}</td>
-                <td class="col-ghg">${v.ghg}</td>
-                <td class="${impactClass} col-cb">${v.cb.toLocaleString()}<span class="unit-label">gCO2eq</span></td>
+                <td class="col-owner" title="${v.owner || 'Unknown'}">${v.owner || 'Unknown'}</td>
+                <td class="col-ghg">${Number(v.ghg).toFixed(2)}</td>
+                <td class="${impactClass} col-cb">${Number(v.cb).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span class="unit-label">gCO2eq</span></td>
                 <td class="col-pool">${poolCellContent}</td>
                 <td class="text-error col-impact text-right">${displayPenalty}</td>
                 <td class="text-success col-impact text-right">${displaySavings}</td>
@@ -992,21 +1125,32 @@ function renderVessels() {
 
             footerRow.innerHTML = `
                 <td class="manual-col"></td>
-                <td colspan="3" class="text-right summary-label">${pId} SUM:</td>
+                <!-- Spans IMO, Name, Owner, GHG -->
+                <td colspan="4" class="text-right summary-label">${pId} SUM:</td>
+                
+                <!-- Compliance Balance Column -->
                 <td class="pool-summary-cell text-right ${cbClass} text-bold">
-                    ${poolCB.toLocaleString()}<span class="unit-label">gCO2eq</span>
+                    ${poolCB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span class="unit-label">gCO2eq</span>
                 </td>
+                
+                <!-- Pool ID Column Spacer -->
                 <td></td>
+                
+                <!-- Penalty Column -->
                 <td class="pool-summary-cell text-right">
                     <div class="pool-summary-item">
                          ${netPoolPenalty > 0 ? `<span class="text-error">Pays: €${Math.floor(netPoolPenalty).toLocaleString()}</span>` : '<span class="text-success">Compliant</span>'}
                     </div>
                 </td>
+                
+                <!-- Savings Column -->
                 <td class="pool-summary-cell text-right">
                     <div class="pool-summary-item">
                         <span class="text-success text-bold">Saved: €${Math.abs(poolSaved).toLocaleString(undefined, { minimumFractionDigits: 0 })}</span>
                     </div>
                 </td>
+                
+                <!-- Status & Actions Spacers -->
                 <td colspan="2"></td>
 `;
             list.appendChild(footerRow);
@@ -1038,17 +1182,28 @@ function renderVessels() {
     footerSummary.innerHTML = `
         <tr class="total-row">
             <td class="manual-col"></td>
-            <td colspan="3" class="text-right summary-label">TOTAL FLEET:</td>
+            <!-- Spans IMO, Name, Owner, GHG -->
+            <td colspan="4" class="text-right summary-label">TOTAL FLEET:</td>
+            
+            <!-- Compliance Balance -->
             <td class="text-bold text-right ${totalCB < 0 ? 'text-error' : 'text-success'}" id="total-cb-cell">
-                ${totalCB.toLocaleString()} gCO2eq
+                ${totalCB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} gCO2eq
             </td>
+            
+            <!-- Pool ID Spacer -->
             <td></td>
+            
+            <!-- Penalty -->
             <td class="text-bold text-right text-error" id="total-penalty-cell">
                 €${totalFleetPenalty.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </td>
+            
+            <!-- Savings -->
             <td class="text-bold text-right text-success" id="total-savings-cell">
                 €${totalSavings.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </td>
+            
+            <!-- Status & Actions Spacers -->
             <td colspan="2"></td>
         </tr >
     `;
@@ -1161,7 +1316,7 @@ function calculateStats(silent = false) {
     }
 
     if (silent) {
-        balanceEl.innerHTML = `${totalCB.toLocaleString()} <span class="unit-label">gCO2eq</span>`;
+        balanceEl.innerHTML = `${totalCB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="unit-label">gCO2eq</span>`;
         savingsEl.textContent = `€${Math.floor(Math.abs(savings)).toLocaleString()} `;
         pooledCountEl.textContent = `${pooledCount} / ${vessels.length}`;
         if (savingsEl.parentElement.querySelector('.savings-breakdown')) {
@@ -1169,7 +1324,7 @@ function calculateStats(silent = false) {
         }
         savingsEl.insertAdjacentHTML('afterend', breakdownHtml);
     } else {
-        animateValue(balanceEl, parseFloat(balanceEl.textContent.replace(/[^\d.-]/g, '')) || 0, totalCB, 1000, '<span class="unit-label">gCO2eq</span>');
+        animateValue(balanceEl, parseFloat(balanceEl.textContent.replace(/[^\d.-]/g, '')) || 0, totalCB, 1000, '<span class="unit-label">gCO2eq</span>', false, 2);
         animateValue(savingsEl, parseFloat(savingsEl.textContent.replace(/[^\d.-]/g, '')) || 0, Math.floor(Math.abs(savings)), 1000, "€", true);
         pooledCountEl.textContent = `${pooledCount} / ${vessels.length}`;
 
@@ -1189,17 +1344,19 @@ function calculateStats(silent = false) {
     document.getElementById('pooling-progress').style.width = `${progress}%`;
 }
 
-function animateValue(obj, start, end, duration, affix = "", isPrefix = false) {
+function animateValue(obj, start, end, duration, affix = "", isPrefix = false, decimals = 0) {
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const current = Math.floor(progress * (end - start) + start);
+        const current = progress * (end - start) + start;
+
+        const formatted = current.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
         if (isPrefix) {
-            obj.innerHTML = affix + current.toLocaleString();
+            obj.innerHTML = affix + formatted;
         } else {
-            obj.innerHTML = current.toLocaleString() + affix;
+            obj.innerHTML = formatted + affix;
         }
 
         if (progress < 1) {
@@ -1332,8 +1489,8 @@ function exportExcel() {
             exportData.push([
                 v.imo || "",
                 v.name || "",
-                Number((v.ghg || 0).toFixed(1)),
-                Math.round(v.cb || 0),
+                Number((v.ghg || 0).toFixed(2)),
+                Number((v.cb || 0).toFixed(2)),
                 pId,
                 typeof rowPenalty === 'number' ? `€${Math.floor(rowPenalty).toLocaleString()}` : rowPenalty,
                 v.status || ""
@@ -1484,8 +1641,8 @@ function exportPDF() {
             tableBody.push([
                 v.imo || "",
                 v.name || "",
-                (v.ghg || 0).toFixed(1),
-                Math.round(v.cb || 0).toLocaleString(),
+                (v.ghg || 0).toFixed(2),
+                Number(v.cb || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                 pId,
                 rowPenalty,
                 v.status || ""

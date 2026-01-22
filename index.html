@@ -44,7 +44,7 @@
             </button>
         </header>
 
-        <main>
+        <main class="app-main-layout">
             <div class="dashboard-grid">
                 <!-- Stats Overview -->
                 <section class="stats-panel">
@@ -75,39 +75,115 @@
                     </div>
                 </section>
 
-                <!-- Controls & Table -->
+                <!-- Controls & Table Section -->
                 <section class="main-content-card">
                     <div class="content-header">
-                        <div class="tabs">
-                            <button id="auto-mode-btn" class="tab-btn active">Auto Pooling</button>
-                            <button id="manual-mode-btn" class="tab-btn">Manual Pooling</button>
-                        </div>
-                        <div class="actions">
+                        <div class="pooling-controls-wrapper">
+                            <!-- Auto Pooling Stack -->
+                            <div class="pooling-section auto-section">
+                                <button id="auto-mode-btn" class="mode-btn active">Auto Pooling</button>
+                                <div class="strategy-toggle-group">
+                                    <label class="toggle-option">
+                                        <input type="radio" name="poolStrategy" value="single" checked
+                                            onchange="updateStrategyUI()">
+                                        <span class="toggle-label">Single Pool</span>
+                                    </label>
+                                    <label class="toggle-option">
+                                        <input type="radio" name="poolStrategy" value="multiple"
+                                            onchange="updateStrategyUI()">
+                                        <span class="toggle-label">Multiple Pools</span>
+                                    </label>
+                                </div>
+                            </div>
 
-                            <button id="run-pooling-btn" class="btn btn-accent pulse">Optimize
-                                Fleet</button>
+                            <!-- Manual Pooling Standalone -->
+                            <div class="pooling-section manual-section">
+                                <button id="manual-mode-btn" class="mode-btn">Manual Pooling</button>
+                            </div>
+                        </div>
+
+                        <div class="header-controls-right">
+                            <!-- Action Buttons -->
+                            <button id="run-pooling-btn" class="btn btn-accent pulse">Optimize Fleet</button>
                             <button id="save-results-btn" class="btn btn-primary" style="display: none;">Save
                                 Results</button>
                             <button id="reset-btn" class="btn btn-ghost">Reset</button>
                         </div>
                     </div>
 
-
                     <div class="vessel-table-wrapper">
                         <table id="vessel-table">
                             <thead>
                                 <tr class="header-labels">
                                     <th class="manual-col col-select"><input type="checkbox" id="select-all"></th>
-                                    <th class="col-imo">IMO Number</th>
-                                    <th class="col-name">Vessel Name</th>
-                                    <th class="col-ghg text-right">GHG Intensity</th>
-                                    <th class="col-cb no-transform text-right">Compliance Balance <span
+                                    <th class="col-imo text-center">
+                                        <div class="header-cell-content">
+                                            <span>IMO Number</span>
+                                            <button class="btn-filter-trigger"
+                                                onclick="toggleHeaderSearch('imo', event)">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="3">
+                                                    <circle cx="11" cy="11" r="8"></circle>
+                                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div id="search-imo-container" class="header-search-container hidden">
+                                            <input type="text" id="search-imo" placeholder="Filter IMO..."
+                                                oninput="filterTable()">
+                                        </div>
+                                    </th>
+                                    <th class="col-name text-center">
+                                        <div class="header-cell-content">
+                                            <span>Vessel Name</span>
+                                            <button class="btn-filter-trigger"
+                                                onclick="toggleHeaderSearch('name', event)">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="3">
+                                                    <circle cx="11" cy="11" r="8"></circle>
+                                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div id="search-name-container" class="header-search-container hidden">
+                                            <input type="text" id="search-name" placeholder="Filter Name..."
+                                                oninput="filterTable()">
+                                        </div>
+                                    </th>
+                                    <th class="col-owner text-center">
+                                        <div class="header-cell-content">
+                                            <span>Owner</span>
+                                            <button class="btn-filter-trigger" onclick="toggleOwnerFilterPopup(event)">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="3">
+                                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3">
+                                                    </polygon>
+                                                </svg>
+                                            </button>
+                                            <span class="filter-dot hidden" id="owner-filter-dot"></span>
+                                        </div>
+                                        <div id="owner-filter-popup" class="filter-popup hidden">
+                                            <div class="popup-header">
+                                                <input type="text" id="popup-owner-search"
+                                                    placeholder="Search owners..." oninput="renderOwnerFilters()">
+                                            </div>
+                                            <div id="popup-owner-list" class="popup-list"></div>
+                                            <div class="popup-footer">
+                                                <button class="btn-text-sm"
+                                                    onclick="clearOwnerFilters(event)">Clear</button>
+                                                <button class="btn-primary-sm"
+                                                    onclick="toggleOwnerFilterPopup(event)">Done</button>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="col-ghg text-center">GHG Intensity</th>
+                                    <th class="col-cb no-transform text-center">Compliance Balance <span
                                             class="unit-label">(gCO2eq)</span></th>
-                                    <th class="col-pool">Pool ID</th>
-                                    <th class="col-impact text-right">Penalty (€)</th>
-                                    <th class="col-impact text-right">Savings (€)</th>
+                                    <th class="col-pool text-center">Pool ID</th>
+                                    <th class="col-impact text-center">Penalty (€)</th>
+                                    <th class="col-impact text-center">Savings (€)</th>
                                     <th class="col-status text-center">Status</th>
-                                    <th class="col-actions">
+                                    <th class="col-actions text-center">
                                         <button id="delete-all-btn" class="btn-delete-all" title="Delete All Data">
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -120,7 +196,6 @@
                                         </button>
                                     </th>
                                 </tr>
-
                             </thead>
                             <tbody id="vessel-list">
                                 <!-- Data injected here -->
@@ -128,12 +203,12 @@
                             <tfoot id="vessel-footer">
                                 <tr class="total-row">
                                     <td class="manual-col"></td>
-                                    <td colspan="3" class="text-right"><strong>Total Fleet Sum:</strong></td>
-                                    <td class="text-bold" id="total-cb-cell">0<span class="unit-label">gCO2eq</span>
-                                    </td>
+                                    <td colspan="4" class="text-right"><strong>Total Fleet Sum:</strong></td>
+                                    <td class="text-bold text-center" id="total-cb-cell">0<span
+                                            class="unit-label">gCO2eq</span></td>
                                     <td></td>
-                                    <td id="total-penalty-cell" class="text-bold text-error">€0</td>
-                                    <td id="total-savings-cell" class="text-bold text-success">€0</td>
+                                    <td id="total-penalty-cell" class="text-bold text-error text-center">€0</td>
+                                    <td id="total-savings-cell" class="text-bold text-success text-center">€0</td>
                                     <td colspan="2"></td>
                                 </tr>
                             </tfoot>
@@ -144,10 +219,10 @@
                                 <div class="pulse-ring"></div>
                             </div>
                             <h3>No fleet data yet</h3>
-                            <p>Upload an Excel file or add vessels manually to start optimizing your compliance balance.
+                            <p>Upload an Excel file or add vessels manually to start optimizing your compliance
+                                balance.
                             </p>
                         </div>
-
                     </div>
                 </section>
             </div>
@@ -280,7 +355,7 @@
         </div>
 
         <!-- Saved Files Bar -->
-        <div id="saved-files-bar" class="saved-files-bar">
+        <div id="saved-files-bar" class="saved-files-bar collapsed">
             <div class="bar-header">
                 <h3>Saved Reports</h3>
                 <div class="header-controls">
