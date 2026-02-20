@@ -1102,7 +1102,7 @@ function renderVessels() {
                 <td class="col-name" title="${v.name}">${v.name}</td>
                 <td class="col-owner" title="${v.owner || 'Unknown'}">${v.owner || 'Unknown'}</td>
                 <td class="col-ghg">${Number(v.ghg).toFixed(2)}</td>
-                <td class="${impactClass} col-cb">${Number(v.cb).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span class="unit-label">gCO2eq</span></td>
+                <td class="${impactClass} col-cb">${Math.round(v.cb).toLocaleString()}<span class="unit-label">gCO2eq</span></td>
                 <td class="col-pool">${poolCellContent}</td>
                 <td class="text-error col-impact text-right">${displayPenalty}</td>
                 <td class="text-success col-impact text-right">${displaySavings}</td>
@@ -1324,7 +1324,7 @@ function calculateStats(silent = false) {
         }
         savingsEl.insertAdjacentHTML('afterend', breakdownHtml);
     } else {
-        animateValue(balanceEl, parseFloat(balanceEl.textContent.replace(/[^\d.-]/g, '')) || 0, totalCB, 1000, '<span class="unit-label">gCO2eq</span>', false, 2);
+        animateValue(balanceEl, parseFloat(balanceEl.textContent.replace(/[^\d.-]/g, '')) || 0, totalCB, 1000, '<span class="unit-label">gCO2eq</span>', false, 0);
         animateValue(savingsEl, parseFloat(savingsEl.textContent.replace(/[^\d.-]/g, '')) || 0, Math.floor(Math.abs(savings)), 1000, "€", true);
         pooledCountEl.textContent = `${pooledCount} / ${vessels.length}`;
 
@@ -1671,3 +1671,4 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     console.log("FuelEU Pooling App Initialized");
 });
+
