@@ -1187,7 +1187,7 @@ function renderVessels() {
             
             <!-- Compliance Balance -->
             <td class="text-bold text-right ${totalCB < 0 ? 'text-error' : 'text-success'}" id="total-cb-cell">
-                ${totalCB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} gCO2eq
+                ${Math.round(totalCB).toLocaleString()} gCO2eq
             </td>
             
             <!-- Pool ID Spacer -->
@@ -1316,7 +1316,7 @@ function calculateStats(silent = false) {
     }
 
     if (silent) {
-        balanceEl.innerHTML = `${totalCB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="unit-label">gCO2eq</span>`;
+        balanceEl.innerHTML = `${Math.round(totalCB).toLocaleString()} <span class="unit-label">gCO2eq</span>`;
         savingsEl.textContent = `€${Math.floor(Math.abs(savings)).toLocaleString()} `;
         pooledCountEl.textContent = `${pooledCount} / ${vessels.length}`;
         if (savingsEl.parentElement.querySelector('.savings-breakdown')) {
@@ -1671,5 +1671,6 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     console.log("FuelEU Pooling App Initialized");
 });
+
 
 
