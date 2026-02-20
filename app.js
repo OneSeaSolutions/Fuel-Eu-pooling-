@@ -1130,7 +1130,7 @@ function renderVessels() {
                 
                 <!-- Compliance Balance Column -->
                 <td class="pool-summary-cell text-right ${cbClass} text-bold">
-                    ${poolCB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span class="unit-label">gCO2eq</span>
+                    ${Math.round(poolCB).toLocaleString()}<span class="unit-label">gCO2eq</span>
                 </td>
                 
                 <!-- Pool ID Column Spacer -->
@@ -1671,4 +1671,5 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     console.log("FuelEU Pooling App Initialized");
 });
+
 
