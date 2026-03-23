@@ -1068,7 +1068,8 @@ function renderVessels() {
                 // Interpret: Surplus vessels = Savings? Or Deficit vessels that are pooled = Savings?
                 // Usually "Savings" is the avoided penalty.
                 // For a surplus vessel, its "monetary value" is potential savings.
-                const surplusValue = (v.cb / v.ghg / VLSFO_ENERGY_MJ_PER_TONNE) * PENALTY_RATE_EUR_PER_TONNE;
+                const surplusValue = (v.cb / 1000000) * 200;
+displaySavings = `€${Math.floor(surplusValue).toLocaleString()}`;
                 displaySavings = `€${Math.floor(surplusValue).toLocaleString()}`;
             }
 
