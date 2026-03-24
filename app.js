@@ -751,9 +751,8 @@ function optimizeMultiplePools() {
 
     globalPoolCounter = 0;
 
-    // Aggressive Packing: 
-    // We create a pool, add the largest surplus, and then try to fit as many deficits as possible.
-    // If a deficit doesn't fit, we pull in another surplus vessel to "fuel" the pool further.
+    // We create a pool, add ONE surplus, and then try to fit as many deficits as possible.
+    // Once the pool is full, we move to the next surplus and start a NEW pool.
 
     while (surplusPool.length > 0) {
         let currentPoolId = getFleetName(globalPoolCounter++);
@@ -774,26 +773,21 @@ function optimizeMultiplePools() {
             let required = Math.abs(d.cb);
 
             if (currentPoolBalance >= required) {
-                // Deficit fits!
+                // Deficit fits completely in the current pool!
                 currentPoolVessels.push(d);
                 currentPoolBalance -= required;
                 d.poolId = currentPoolId;
                 d.status = 'pooled';
-                deficitPool.splice(i, 1);
-                // Don't increment i, check the new element at this index
-            } else if (surplusPool.length > 0) {
-                // Doesn't fit, but we have more surpluses to pull in
-                let nextSurplus = surplusPool.shift();
-                currentPoolVessels.push(nextSurplus);
-                currentPoolBalance += nextSurplus.cb;
-                nextSurplus.poolId = currentPoolId;
-                nextSurplus.status = 'pooled';
-                // Now retry the same deficit (don't increment i)
+                deficitPool.splice(i, 1); // remove from unpooled list
+                // Don't increment i, check the next element which slid into this index
             } else {
-                // Doesn't fit and no more surpluses left to pull in
-                i++; // Skip this deficit and try a potentially smaller one
+                // Deficit is too big for the CURRENT pool's remaining balance.
+                // Skip to the next (smaller) deficit to see if IT fits this pool.
+                i++; 
             }
         }
+        // Pool is now "completed" because we've checked all remaining deficits 
+        // and none of them fit the remaining balance. Outer loop will now start the NEXT pool.
     }
 
     // Remaining deficits stay as "deficit"
@@ -802,6 +796,7 @@ function optimizeMultiplePools() {
         d.status = "deficit";
     });
 }
+
 
 
 function openSaveModal() {
