@@ -751,8 +751,9 @@ function optimizeMultiplePools() {
 
     globalPoolCounter = 0;
 
-    // We create a pool, add ONE surplus, and then try to fit as many deficits as possible.
-    // Once the pool is full, we move to the next surplus and start a NEW pool.
+    // Aggressive Packing: 
+    // We create a pool, add the largest surplus, and then try to fit as many deficits as possible.
+    // If a deficit doesn't fit, we pull in another surplus vessel to "fuel" the pool further.
 
     while (surplusPool.length > 0) {
         let currentPoolId = getFleetName(globalPoolCounter++);
@@ -796,7 +797,6 @@ function optimizeMultiplePools() {
         d.status = "deficit";
     });
 }
-
 
 
 function openSaveModal() {
@@ -1064,7 +1064,6 @@ function renderVessels() {
                 // Usually "Savings" is the avoided penalty.
                 // For a surplus vessel, its "monetary value" is potential savings.
                 const surplusValue = (v.cb / 1000000) * 200;
-displaySavings = `€${Math.floor(surplusValue).toLocaleString()}`;
                 displaySavings = `€${Math.floor(surplusValue).toLocaleString()}`;
             }
 
@@ -1098,7 +1097,7 @@ displaySavings = `€${Math.floor(surplusValue).toLocaleString()}`;
                 <td class="col-name" title="${v.name}">${v.name}</td>
                 <td class="col-owner" title="${v.owner || 'Unknown'}">${v.owner || 'Unknown'}</td>
                 <td class="col-ghg">${Number(v.ghg).toFixed(2)}</td>
-                <td class="${impactClass} col-cb">${Math.round(v.cb).toLocaleString()}<span class="unit-label">gCO2eq</span></td>
+                <td class="${impactClass} col-cb">${Math.round(v.cb / 1000000).toLocaleString()}<span class="unit-label">MTCO2eq</span></td>
                 <td class="col-pool">${poolCellContent}</td>
                 <td class="text-error col-impact text-right">${displayPenalty}</td>
                 <td class="text-success col-impact text-right">${displaySavings}</td>
@@ -1126,7 +1125,7 @@ displaySavings = `€${Math.floor(surplusValue).toLocaleString()}`;
                 
                 <!-- Compliance Balance Column -->
                 <td class="pool-summary-cell text-right ${cbClass} text-bold">
-                    ${Math.round(poolCB).toLocaleString()}<span class="unit-label">gCO2eq</span>
+                    ${Math.round(poolCB / 1000000).toLocaleString()}<span class="unit-label">MTCO2eq</span>
                 </td>
                 
                 <!-- Pool ID Column Spacer -->
@@ -1183,7 +1182,7 @@ displaySavings = `€${Math.floor(surplusValue).toLocaleString()}`;
             
             <!-- Compliance Balance -->
             <td class="text-bold text-right ${totalCB < 0 ? 'text-error' : 'text-success'}" id="total-cb-cell">
-                ${Math.round(totalCB).toLocaleString()} gCO2eq
+                ${Math.round(totalCB / 1000000).toLocaleString()} MTCO2eq
             </td>
             
             <!-- Pool ID Spacer -->
@@ -1312,7 +1311,7 @@ function calculateStats(silent = false) {
     }
 
     if (silent) {
-        balanceEl.innerHTML = `${Math.round(totalCB).toLocaleString()} <span class="unit-label">gCO2eq</span>`;
+        balanceEl.innerHTML = `${Math.round(totalCB / 1000000).toLocaleString()} <span class="unit-label">MTCO2eq</span>`;
         savingsEl.textContent = `€${Math.floor(Math.abs(savings)).toLocaleString()} `;
         pooledCountEl.textContent = `${pooledCount} / ${vessels.length}`;
         if (savingsEl.parentElement.querySelector('.savings-breakdown')) {
@@ -1320,7 +1319,7 @@ function calculateStats(silent = false) {
         }
         savingsEl.insertAdjacentHTML('afterend', breakdownHtml);
     } else {
-        animateValue(balanceEl, parseFloat(balanceEl.textContent.replace(/[^\d.-]/g, '')) || 0, totalCB, 1000, '<span class="unit-label">gCO2eq</span>', false, 0);
+        animateValue(balanceEl, parseFloat(balanceEl.textContent.replace(/[^\d.-]/g, '')) || 0, Math.round(totalCB / 1000000), 1000, '<span class="unit-label">MTCO2eq</span>', false, 0);
         animateValue(savingsEl, parseFloat(savingsEl.textContent.replace(/[^\d.-]/g, '')) || 0, Math.floor(Math.abs(savings)), 1000, "€", true);
         pooledCountEl.textContent = `${pooledCount} / ${vessels.length}`;
 
@@ -1449,7 +1448,7 @@ function exportExcel() {
         ["FLEET STATUS:", totalCB >= 0 ? "COMPLIANT" : "DEFICIT"],
         [],
         ["[ SUMMARY METRICS ]"],
-        ["Total Fleet Balance", `${totalCB.toLocaleString()} gCO2eq`],
+        ["Total Fleet Balance", `${Math.round(totalCB / 1000000).toLocaleString()} MTCO2eq`],
         ["Initial Penalty (Unpooled)", `€${Math.floor(initialTotalPenalty).toLocaleString()}`],
         ["Final Penalty (Optimized)", `€${Math.floor(currentTotalPenalty).toLocaleString()}`],
         ["TOTAL SAVINGS REALIZED", `€${Math.floor(savings).toLocaleString()}`],
@@ -1486,7 +1485,7 @@ function exportExcel() {
                 v.imo || "",
                 v.name || "",
                 Number((v.ghg || 0).toFixed(2)),
-                Number((v.cb || 0).toFixed(2)),
+                Math.round((v.cb || 0) / 1000000),
                 pId,
                 typeof rowPenalty === 'number' ? `€${Math.floor(rowPenalty).toLocaleString()}` : rowPenalty,
                 v.status || ""
@@ -1600,7 +1599,7 @@ function exportPDF() {
         startY: 40,
         head: [['Summary Metrics', 'Value']],
         body: [
-            ['Total Fleet Balance', `${totalCB.toLocaleString()} gCO2eq`],
+            ['Total Fleet Balance', `${Math.round(totalCB / 1000000).toLocaleString()} MTCO2eq`],
             ['Initial Penalty (Unpooled)', `€${Math.floor(initialTotalPenalty).toLocaleString()}`],
             ['Final Penalty (Optimized)', `€${Math.floor(currentTotalPenalty).toLocaleString()}`],
             ['TOTAL SAVINGS', `€${Math.floor(savings).toLocaleString()}`]
@@ -1622,7 +1621,7 @@ function exportPDF() {
         const poolCB = members.reduce((sum, v) => sum + v.cb, 0);
         const poolStatus = poolCB >= 0 ? "Compliant" : "Deficit";
 
-        tableBody.push([{ content: `Pool: ${pId} | Count: ${members.length} | Balance: ${poolCB.toLocaleString()} | Status: ${poolStatus}`, colSpan: 7, styles: { fillColor: [240, 240, 240], fontStyle: 'bold', halign: 'left' } }]);
+        tableBody.push([{ content: `Pool: ${pId} | Count: ${members.length} | Balance: ${Math.round(poolCB / 1000000).toLocaleString()} | Status: ${poolStatus}`, colSpan: 7, styles: { fillColor: [240, 240, 240], fontStyle: 'bold', halign: 'left' } }]);
 
         members.forEach(v => {
             let rowPenalty = "0";
@@ -1638,7 +1637,7 @@ function exportPDF() {
                 v.imo || "",
                 v.name || "",
                 (v.ghg || 0).toFixed(2),
-                Number(v.cb || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                Math.round((v.cb || 0) / 1000000).toLocaleString(),
                 pId,
                 rowPenalty,
                 v.status || ""
@@ -1667,6 +1666,3 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     console.log("FuelEU Pooling App Initialized");
 });
-
-
-

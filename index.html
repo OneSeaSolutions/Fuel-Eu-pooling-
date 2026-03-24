@@ -50,7 +50,7 @@
                 <section class="stats-panel">
                     <div class="stat-card">
                         <h3>Total Fleet Balance</h3>
-                        <p id="total-balance">0<span class="unit-label">gCO2eq</span></p>
+                        <p id="total-balance">0<span class="unit-label">MTCO2eq</span></p>
                         <div class="stat-footer">
                             <span class="status-indicator" id="balance-status"></span>
                             <span id="balance-label">Net Compliance</span>
@@ -82,16 +82,18 @@
                             <!-- Auto Pooling Stack -->
                             <div class="pooling-section auto-section">
                                 <button id="auto-mode-btn" class="mode-btn active">Auto Pooling</button>
-                               <div class="strategy-toggle-group">
-    <label class="toggle-option">
-        <input type="radio" name="poolStrategy" value="single" onchange="updateStrategyUI()">
-        <span class="toggle-label">Single Pool</span>
-    </label>
-    <label class="toggle-option">
-        <input type="radio" name="poolStrategy" value="multiple" checked onchange="updateStrategyUI()">
-        <span class="toggle-label">Multiple Pools</span>
-    </label>
-</div>
+                                <div class="strategy-toggle-group">
+                                    <label class="toggle-option">
+                                        <input type="radio" name="poolStrategy" value="single" checked
+                                            onchange="updateStrategyUI()">
+                                        <span class="toggle-label">Single Pool</span>
+                                    </label>
+                                    <label class="toggle-option">
+                                        <input type="radio" name="poolStrategy" value="multiple"
+                                            onchange="updateStrategyUI()">
+                                        <span class="toggle-label">Multiple Pools</span>
+                                    </label>
+                                </div>
                             </div>
 
                             <!-- Manual Pooling Standalone -->
@@ -176,7 +178,7 @@
                                     </th>
                                     <th class="col-ghg text-center">GHG Intensity</th>
                                     <th class="col-cb no-transform text-center">Compliance Balance <span
-                                            class="unit-label">(gCO2eq)</span></th>
+                                            class="unit-label">(MTCO2eq)</span></th>
                                     <th class="col-pool text-center">Pool ID</th>
                                     <th class="col-impact text-center">Penalty (€)</th>
                                     <th class="col-impact text-center">Savings (€)</th>
@@ -203,7 +205,7 @@
                                     <td class="manual-col"></td>
                                     <td colspan="4" class="text-right"><strong>Total Fleet Sum:</strong></td>
                                     <td class="text-bold text-center" id="total-cb-cell">0<span
-                                            class="unit-label">gCO2eq</span></td>
+                                            class="unit-label">MTCO2eq</span></td>
                                     <td></td>
                                     <td id="total-penalty-cell" class="text-bold text-error text-center">€0</td>
                                     <td id="total-savings-cell" class="text-bold text-success text-center">€0</td>
