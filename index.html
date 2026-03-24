@@ -82,18 +82,16 @@
                             <!-- Auto Pooling Stack -->
                             <div class="pooling-section auto-section">
                                 <button id="auto-mode-btn" class="mode-btn active">Auto Pooling</button>
-                                <div class="strategy-toggle-group">
-                                    <label class="toggle-option">
-                                        <input type="radio" name="poolStrategy" value="single" checked
-                                            onchange="updateStrategyUI()">
-                                        <span class="toggle-label">Single Pool</span>
-                                    </label>
-                                    <label class="toggle-option">
-                                        <input type="radio" name="poolStrategy" value="multiple"
-                                            onchange="updateStrategyUI()">
-                                        <span class="toggle-label">Multiple Pools</span>
-                                    </label>
-                                </div>
+                               <div class="strategy-toggle-group">
+    <label class="toggle-option">
+        <input type="radio" name="poolStrategy" value="single" onchange="updateStrategyUI()">
+        <span class="toggle-label">Single Pool</span>
+    </label>
+    <label class="toggle-option">
+        <input type="radio" name="poolStrategy" value="multiple" checked onchange="updateStrategyUI()">
+        <span class="toggle-label">Multiple Pools</span>
+    </label>
+</div>
                             </div>
 
                             <!-- Manual Pooling Standalone -->
