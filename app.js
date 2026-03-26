@@ -756,6 +756,23 @@ function optimizeMultiplePools() {
     // If a deficit doesn't fit, we pull in another surplus vessel to "fuel" the pool further.
 
     while (surplusPool.length > 0) {
+        
+        // --- NEW LOGIC ADDED HERE ---
+        // If all deficits are allocated and we have more than 1 surplus vessel remaining,
+        // combine all remaining surplus vessels into one final pool.
+        if (deficitPool.length === 0) {
+            if (surplusPool.length > 1) {
+                let finalPoolId = getFleetName(globalPoolCounter++);
+                while (surplusPool.length > 0) {
+                    let s = surplusPool.shift();
+                    s.poolId = finalPoolId;
+                    s.status = 'pooled';
+                }
+            }
+            break; 
+        }
+        // ----------------------------
+
         let currentPoolId = getFleetName(globalPoolCounter++);
         let currentPoolVessels = [];
         let currentPoolBalance = 0;
